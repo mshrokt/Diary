@@ -64,14 +64,14 @@ export default function EditDiary() {
       router.refresh();
     } catch (error) {
       console.error("Error saving diary:", error);
-      alert("Failed to save. Please try again.");
+      alert("保存に失敗しました。もう一度お試しください。");
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = async () => {
-    if (!confirm("Are you sure you want to delete this entry?")) return;
+    if (!confirm("この日記を削除してもよろしいですか？")) return;
     setDeleting(true);
     try {
       await deleteDiary(idStr);
@@ -79,7 +79,7 @@ export default function EditDiary() {
       router.refresh();
     } catch (error) {
       console.error("Error deleting diary:", error);
-      alert("Failed to delete. Please try again.");
+      alert("削除に失敗しました。もう一度お試しください。");
       setDeleting(false);
     }
   };
@@ -105,7 +105,7 @@ export default function EditDiary() {
             className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
           >
             <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">Back</span>
+            <span className="font-medium">戻る</span>
           </Link>
 
           <div className="flex items-center gap-3">
@@ -114,7 +114,7 @@ export default function EditDiary() {
                 onClick={handleDelete}
                 disabled={deleting}
                 className="flex items-center justify-center p-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full transition-colors disabled:opacity-50"
-                aria-label="Delete entry"
+                aria-label="日記を削除"
               >
                 {deleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
               </button>
@@ -125,7 +125,7 @@ export default function EditDiary() {
               className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-5 py-2.5 rounded-full font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm border border-transparent dark:border-gray-200"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              Save
+              保存
             </button>
           </div>
         </div>
@@ -151,7 +151,7 @@ export default function EditDiary() {
           <textarea
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Write your thoughts here..."
+            placeholder="今日のできごとや思考をここに書き留めましょう..."
             className="w-full flex-1 bg-transparent resize-none outline-none text-gray-800 dark:text-gray-200 text-lg leading-relaxed placeholder-gray-400 dark:placeholder-gray-600"
             style={{ minHeight: "200px" }}
             autoFocus

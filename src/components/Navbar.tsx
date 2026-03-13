@@ -38,7 +38,7 @@ export default function Navbar() {
           <button
             onClick={toggleTheme}
             className="p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            aria-label="Toggle theme"
+            aria-label="テーマの切り替え"
           >
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
           </button>
@@ -48,7 +48,7 @@ export default function Navbar() {
               className="flex items-center gap-2 text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-black dark:hover:text-white transition-colors"
             >
               <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
+              <span className="hidden sm:inline">ログアウト</span>
             </button>
           )}
         </div>

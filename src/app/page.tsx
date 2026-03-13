@@ -35,9 +35,9 @@ export default function Home() {
     return (
       <main className="flex-1 flex flex-col items-center justify-center p-4">
         <div className="text-center space-y-6 max-w-sm w-full bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800">
-          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">Diary App</h1>
+          <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white">マルチデバイス日記帳</h1>
           <p className="text-gray-500 dark:text-gray-400">
-            Secure, sync-anywhere diary for your personal thoughts.
+            PCでもスマホでも、いつでもどこでも同期される安全な日記アプリです。
           </p>
           <button
             onClick={loginWithGoogle}
@@ -62,7 +62,7 @@ export default function Home() {
               />
               <path fill="none" d="M1 1h22v22H1z" />
             </svg>
-            Continue with Google
+            Googleアカウントでログイン
           </button>
         </div>
       </main>
@@ -74,13 +74,13 @@ export default function Home() {
       <Navbar />
       <main className="flex-1 max-w-2xl mx-auto w-full p-4 relative">
         <div className="flex items-center justify-between mb-8 mt-4">
-          <h1 className="text-2xl font-bold">Your Diaries</h1>
+          <h1 className="text-2xl font-bold">あなたの日記</h1>
           <Link
             href="/edit/new"
             className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition duration-200 shadow-md font-medium text-sm"
           >
             <PenSquare className="w-4 h-4" />
-            New Entry
+            日記を書く
           </Link>
         </div>
 
@@ -103,8 +103,8 @@ export default function Home() {
         ) : diaries.length === 0 ? (
           <div className="text-center p-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-300 dark:border-gray-700">
             <BookHeart className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">No entries yet</h3>
-            <p className="text-gray-500 mt-2">Start writing your thoughts today.</p>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">まだ日記がありません</h3>
+            <p className="text-gray-500 mt-2">画面右上の「日記を書く」ボタンから、最初のできごとを記録しましょう！</p>
           </div>
         ) : (
           <div className="space-y-4">
