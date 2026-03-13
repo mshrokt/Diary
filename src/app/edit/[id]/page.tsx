@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { createDiary, getDiaries, updateDiary, deleteDiary } from "@/lib/db";
-import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag } from "lucide-react";
+import { Diary } from "@/types/diary";
+import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
@@ -18,6 +19,7 @@ export default function EditDiary() {
   const [content, setContent] = useState("");
   const [date, setDate] = useState<number>(Date.now());
   const [tagsInput, setTagsInput] = useState("");
+  const [lastYearDiary, setLastYearDiary] = useState<Diary | null>(null);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -30,27 +32,47 @@ export default function EditDiary() {
       return;
     }
 
-    if (!isNew) {
-      const fetchDiary = async () => {
-        try {
-          const diaries = await getDiaries(user.uid);
-          const found = diaries.find((d) => d.id === idStr);
+    const fetchDiaries = async () => {
+      try {
+        const allDiaries = await getDiaries(user.uid);
+        
+        // 1. Fetch current diary if not new
+        if (!isNew) {
+          const found = allDiaries.find((d) => d.id === idStr);
           if (found) {
             setContent(found.content);
             setDate(found.date);
             setTagsInput(found.tags?.join(" ") || "");
           } else {
             router.push("/");
+            return;
           }
-        } catch (error) {
-          console.error("Error fetching diary:", error);
-        } finally {
-          setLoading(false);
         }
-      };
-      fetchDiary();
-    }
-  }, [user, authLoading, isNew, idStr, router]);
+
+        // 2. Check for "One Year Ago" diary based on selected date
+        const selectedDate = new Date(date);
+        const lyYear = selectedDate.getFullYear() - 1;
+        const lyMonth = selectedDate.getMonth();
+        const lyDay = selectedDate.getDate();
+
+        const lyDiary = allDiaries.find((d) => {
+          const dDate = new Date(d.date);
+          return (
+            dDate.getFullYear() === lyYear &&
+            dDate.getMonth() === lyMonth &&
+            dDate.getDate() === lyDay
+          );
+        });
+        setLastYearDiary(lyDiary || null);
+
+      } catch (error) {
+        console.error("Error fetching diaries:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDiaries();
+  }, [user, authLoading, isNew, idStr, router, date]);
 
   const handleSave = async () => {
     if (!user || !content.trim()) return;
@@ -196,6 +218,28 @@ export default function EditDiary() {
             </span>
           </div>
         </div>
+
+        {/* Throwback Section */}
+        {lastYearDiary && (
+          <div className="animate-slide-up mt-4 pb-4">
+            <h3 className="text-[10px] font-bold text-muted mb-3 flex items-center gap-2 uppercase tracking-tight">
+              <History className="w-3 h-3 text-primary" />
+              1年前の今日のあなた
+            </h3>
+            <Link
+              href={`/read/${lastYearDiary.id}`}
+              className="group block bg-card/40 backdrop-blur-sm border border-primary/20 rounded-2xl p-4 hover:border-primary/40 transition-all card-hover"
+            >
+              <p className="text-xs text-foreground/70 line-clamp-2 leading-relaxed italic">
+                「{lastYearDiary.content}」
+              </p>
+              <div className="mt-2 flex items-center justify-end gap-1 text-[10px] font-bold text-primary">
+                読み返す
+                <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+              </div>
+            </Link>
+          </div>
+        )}
       </main>
     </>
   );

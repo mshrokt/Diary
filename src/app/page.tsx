@@ -7,7 +7,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Calendar from "@/components/Calendar";
-import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, Search, Tag, X } from "lucide-react";
+import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, Search, Tag, X, History } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -37,16 +37,36 @@ export default function Home() {
   }, [user]);
 
   // Derived data for display and filtering
-  const { filteredDiaries, diaryData, allTags } = useMemo(() => {
+  const { filteredDiaries, diaryData, allTags, lastYearDiary, topTags } = useMemo<{
+    filteredDiaries: Diary[];
+    diaryData: Map<string, { intensity: number; id: string; preview: string }>;
+    allTags: string[];
+    lastYearDiary: Diary | null;
+    topTags: { name: string; count: number }[];
+  }>(() => {
     const dataMap = new Map<string, { intensity: number; id: string; preview: string }>();
     const tagSet = new Set<string>();
+    const tagCounts: Record<string, number> = {};
+    
+    // Calculate "One Year Ago" target
+    const now = new Date();
+    const lyYear = now.getFullYear() - 1;
+    const lyMonth = now.getMonth();
+    const lyDay = now.getDate();
+    let lyFound: Diary | null = null;
 
     const filtered = diaries.filter((d) => {
-      // Collect tags
-      d.tags?.forEach(t => tagSet.add(t));
+      // Collect tags and count frequencies
+      d.tags?.forEach(t => {
+        tagSet.add(t);
+        tagCounts[t] = (tagCounts[t] || 0) + 1;
+      });
 
       // Build calendar data (intensity based on character count)
       const dt = new Date(d.date);
+      const isLastYearToday = dt.getFullYear() === lyYear && dt.getMonth() === lyMonth && dt.getDate() === lyDay;
+      if (isLastYearToday) lyFound = d;
+
       const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
       const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "" };
       
@@ -64,10 +84,18 @@ export default function Home() {
       return matchesSearch && matchesTag;
     });
 
+    // Sort tags by frequency
+    const sortedTags = Object.entries(tagCounts)
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 6); // Top 6 tags
+
     return {
       filteredDiaries: filtered,
       diaryData: dataMap,
-      allTags: Array.from(tagSet).sort()
+      allTags: Array.from(tagSet).sort(),
+      lastYearDiary: lyFound,
+      topTags: sortedTags
     };
   }, [diaries, searchQuery, selectedTag]);
 
@@ -239,6 +267,72 @@ export default function Home() {
               diaryData={diaryData}
               onDateClick={handleCalendarDateClick}
             />
+
+            {/* Throwback Card */}
+            {lastYearDiary && !searchQuery && !selectedTag && (
+              <div className="animate-slide-up">
+                <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-3xl p-6 relative overflow-hidden group hover:border-primary/40 transition-all">
+                  <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-500">
+                    <History className="w-24 h-24 text-primary" />
+                  </div>
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest mb-4">
+                      <History className="w-4 h-4" />
+                      1年前の今日のあなた
+                    </div>
+                    <p className="text-foreground leading-relaxed italic mb-4 line-clamp-3">
+                      「{lastYearDiary.content}」
+                    </p>
+                    
+                    {/* Tags from last year */}
+                    {lastYearDiary.tags && lastYearDiary.tags.length > 0 && (
+                      <div className="flex flex-wrap gap-2 mb-6">
+                        <span className="text-[9px] font-bold text-muted/60 uppercase tracking-tighter self-center mr-1">当時の関心:</span>
+                        {lastYearDiary.tags.map(tag => (
+                          <span key={tag} className="text-[10px] font-medium text-accent bg-accent/5 px-2 py-0.5 rounded-lg border border-accent/10">
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <Link
+                      href={`/read/${lastYearDiary.id}`}
+                      className="inline-flex items-center gap-2 bg-white dark:bg-card border border-primary/10 px-4 py-2 rounded-xl text-xs font-bold text-primary hover:bg-primary hover:text-white transition-all shadow-sm"
+                    >
+                      詳しく読む
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Keyword / Interests Section */}
+            {topTags.length > 0 && !searchQuery && !selectedTag && (
+                <div className="animate-fade-in">
+                    <h3 className="text-xs font-bold text-muted mb-4 flex items-center gap-2 uppercase tracking-wider">
+                        <Sparkles className="w-3.5 h-3.5 text-accent" />
+                        あなたの関心事
+                    </h3>
+                    <div className="flex flex-wrap gap-x-6 gap-y-4 px-2">
+                        {topTags.map((tag, idx) => (
+                            <div key={tag.name} className="flex flex-col gap-1">
+                                <span className="text-[10px] font-bold text-muted uppercase tracking-tighter opacity-50">Rank {idx + 1}</span>
+                                <button 
+                                    onClick={() => setSelectedTag(tag.name)}
+                                    className="text-sm font-semibold text-foreground hover:text-primary transition-colors flex items-center gap-1.5"
+                                >
+                                    {tag.name}
+                                    <span className="text-[10px] font-medium bg-surface px-1.5 py-0.5 rounded-md border border-border">
+                                        {tag.count}
+                                    </span>
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             {/* Diary list */}
             {filteredDiaries.length === 0 ? (
