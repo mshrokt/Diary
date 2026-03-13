@@ -62,11 +62,19 @@ export default function Home() {
       });
 
       // 2. Simple keyword extraction from content
-      // Extract words that are likely nouns (2+ chars, filtering some common Jap particles/symbols)
-      const words = d.content.match(/([一-龠]{2,}|[ぁ-んァ-ヶ]{2,}|[a-zA-Z]{3,})/g) || [];
+      // Extract words that are likely nouns (2+ chars for Kanji/Katakana, 3+ for Hiragana/English)
+      const words = d.content.match(/([一-龠]{2,}|[ァ-ヶ]{2,}|[ぁ-ん]{3,}|[a-zA-Z]{3,})/g) || [];
+      const stopWords = [
+        "から", "ので", "した", "です", "ます", "など", "こと", "もの", "ため", "よう", "みたい", 
+        "感じ", "思った", "書いた", "でした", "される", "ている", "ところ", "という", "そして", 
+        "しかし", "だった", "なくて", "けれど", "ななめ", "あした", "きょう", "昨日"
+      ];
+      
       words.forEach(w => {
-          // Avoid very common particles if they accidentally matched
-          if (["から", "ので", "した", "です", "ます", "など"].includes(w)) return;
+          if (stopWords.some(sw => w.includes(sw) || sw.includes(w))) return;
+          // Avoid words that end with common verb suffixes if they are hiragana-heavy
+          if (w.length <= 3 && /[ぁ-ん]$/.test(w)) return;
+          
           tagCounts[w] = (tagCounts[w] || 0) + 0.5; // Keywords have lower weight than explicit tags
       });
 
