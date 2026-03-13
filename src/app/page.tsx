@@ -10,13 +10,17 @@ import Calendar from "@/components/Calendar";
 import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, Search, Tag, X, History, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 
+import { getDailyHint } from "@/data/dailyHints";
+
 export default function Home() {
-  const { user, loginWithGoogle } = useAuth();
+  const { user, loading: authLoading, loginWithGoogle } = useAuth();
   const router = useRouter();
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+
+  const todayHint = useMemo(() => getDailyHint(new Date()), []);
 
   useEffect(() => {
     if (user) {
@@ -198,22 +202,55 @@ export default function Home() {
     <>
       <Navbar />
       <main className="flex-1 max-w-3xl mx-auto w-full px-5 pb-12">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6 mt-6 animate-fade-in">
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">あなたの日記</h1>
-            <p className="text-muted text-sm mt-1">
-              {diaries.length > 0 ? `${diaries.length}件の記録` : "新しい一日を始めましょう"}
-            </p>
+        {/* Dynamic Header / Today's Hint */}
+        {!searchQuery && !selectedTag ? (
+          <div className="mb-8 mt-6 animate-fade-in text-left">
+            <div className="bg-gradient-to-br from-surface to-background border border-border rounded-[2rem] p-8 relative overflow-hidden shadow-sm group">
+              <div className="absolute -top-12 -right-12 w-48 h-48 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors duration-500" />
+              
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-primary/10 rounded-xl">
+                      <Sparkles className="w-4 h-4 text-primary" />
+                    </div>
+                    <span className="text-xs font-bold text-primary uppercase tracking-widest">
+                      {todayHint.target}
+                    </span>
+                  </div>
+                  <button 
+                    onClick={() => router.push("/edit/new")}
+                    className="bg-primary text-white text-xs font-bold px-4 py-2 rounded-xl shadow-md hover:shadow-lg hover:opacity-90 transition-all active:scale-95 cursor-pointer"
+                  >
+                    書く
+                  </button>
+                </div>
+                
+                <h1 className="text-xl md:text-2xl font-bold text-foreground mb-4 leading-tight">
+                  {todayHint.question}
+                </h1>
+                
+                <div className="flex items-center justify-between">
+                  <p className="text-muted text-sm max-w-[400px] leading-relaxed">
+                    今の素直な気持ちを言葉に残してみませんか？
+                  </p>
+                  <span className="text-[10px] font-medium bg-surface px-2 py-0.5 rounded-full border border-border">
+                    計 {diaries.length}件
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
-          <button
-            onClick={() => router.push("/edit/new")}
-            className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-light hover:opacity-90 text-white px-5 py-2.5 rounded-2xl transition-all shadow-lg hover:shadow-xl font-medium text-sm cursor-pointer active:scale-[0.97] btn-glow"
-          >
-            <PenSquare className="w-4 h-4" />
-            日記を書く
-          </button>
-        </div>
+        ) : (
+            <div className="mb-6 mt-6 animate-fade-in">
+               <h1 className="text-2xl font-bold text-foreground mb-1">
+                検索・フィルタ結果
+              </h1>
+              <p className="text-muted text-sm">
+                絞り込み条件に一致する日記を表示しています
+              </p>
+            </div>
+        )}
 
         {loading ? (
           <div className="space-y-4 mt-4">
