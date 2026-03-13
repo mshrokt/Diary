@@ -4,5 +4,7 @@ export interface Diary {
   content: string; // The text content of the diary
   date: number; // Stored as timestamp block or standard ISO string for querying. Using number (timestamp)
   tags?: string[]; // Optional array of strings for tagging
+  imageUrl?: string;
+  keywords?: string[];
   createdAt: number;
 }

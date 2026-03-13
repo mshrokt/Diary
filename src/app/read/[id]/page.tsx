@@ -141,6 +141,17 @@ export default function ReadDiary() {
                 </Link>
               </div>
 
+              {/* Image in reader */}
+              {diary.imageUrl && (
+                <div className="mb-6 rounded-2xl overflow-hidden border border-border shadow-sm">
+                  <img 
+                    src={diary.imageUrl} 
+                    alt="Diary photo" 
+                    className="w-full h-auto object-cover max-h-[500px]" 
+                  />
+                </div>
+              )}
+
               {/* Tags in reader */}
               {diary.tags && diary.tags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-4">

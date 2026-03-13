@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 
 interface CalendarProps {
-  diaryData: Map<string, { intensity: number; id: string; preview?: string }>; // "YYYY-MM-DD" -> { intensity, id, preview }
+  diaryData: Map<string, { intensity: number; id: string; preview?: string; hasImage?: boolean; imageUrl?: string }>; // "YYYY-MM-DD" -> { intensity, id, preview, hasImage, imageUrl }
   onDateClick: (dateStr: string) => void;
 }
 
@@ -147,10 +147,22 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
               {isToday && hasDiary && (
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent border-2 border-card rounded-full shadow-sm" />
               )}
+              
+              {/* Image Indicator */}
+              {hasDiary && dayInfo.hasImage && (
+                <div className="absolute top-1 right-1">
+                  <ImageIcon className="w-2.5 h-2.5 text-primary/70" />
+                </div>
+              )}
 
               {/* Tooltip on hover */}
               {hasDiary && dayInfo.preview && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-card/90 backdrop-blur-md border border-border rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 p-3 bg-card/90 backdrop-blur-md border border-border rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                  {dayInfo.imageUrl && (
+                    <div className="mb-2 rounded-lg overflow-hidden h-24 w-full border border-border/50">
+                      <img src={dayInfo.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                    </div>
+                  )}
                   <p className="text-[10px] text-foreground leading-relaxed line-clamp-4 whitespace-pre-wrap text-left">
                     {dayInfo.preview}
                   </p>

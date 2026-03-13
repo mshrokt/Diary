@@ -7,7 +7,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Calendar from "@/components/Calendar";
-import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, Search, Tag, X, History } from "lucide-react";
+import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, Search, Tag, X, History, Image as ImageIcon } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -36,15 +36,14 @@ export default function Home() {
     }
   }, [user]);
 
-  // Derived data for display and filtering
   const { filteredDiaries, diaryData, allTags, lastYearDiary, topTags } = useMemo<{
     filteredDiaries: Diary[];
-    diaryData: Map<string, { intensity: number; id: string; preview: string }>;
+    diaryData: Map<string, { intensity: number; id: string; preview: string; hasImage: boolean; imageUrl?: string }>;
     allTags: string[];
     lastYearDiary: Diary | null;
     topTags: { name: string; count: number }[];
   }>(() => {
-    const dataMap = new Map<string, { intensity: number; id: string; preview: string }>();
+    const dataMap = new Map<string, { intensity: number; id: string; preview: string; hasImage: boolean; imageUrl?: string }>();
     const tagSet = new Set<string>();
     const tagCounts: Record<string, number> = {};
     
@@ -56,26 +55,37 @@ export default function Home() {
     let lyFound: Diary | null = null;
 
     const filtered = diaries.filter((d) => {
-      // Collect tags and count frequencies
+      // 1. Collect tags and count frequencies
       d.tags?.forEach(t => {
         tagSet.add(t);
         tagCounts[t] = (tagCounts[t] || 0) + 1;
       });
 
-      // Build calendar data (intensity based on character count)
+      // 2. Simple keyword extraction from content
+      // Extract words that are likely nouns (2+ chars, filtering some common Jap particles/symbols)
+      const words = d.content.match(/([一-龠]{2,}|[ぁ-んァ-ヶ]{2,}|[a-zA-Z]{3,})/g) || [];
+      words.forEach(w => {
+          // Avoid very common particles if they accidentally matched
+          if (["から", "ので", "した", "です", "ます", "など"].includes(w)) return;
+          tagCounts[w] = (tagCounts[w] || 0) + 0.5; // Keywords have lower weight than explicit tags
+      });
+
+      // 3. Build calendar data (intensity based on character count)
       const dt = new Date(d.date);
       const isLastYearToday = dt.getFullYear() === lyYear && dt.getMonth() === lyMonth && dt.getDate() === lyDay;
       if (isLastYearToday) lyFound = d;
 
       const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-      const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "" };
+      const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "", hasImage: false, imageUrl: undefined };
       
       const contentPreview = d.content.length > 40 ? d.content.substring(0, 40) + "..." : d.content;
       
       dataMap.set(dateStr, {
         intensity: current.intensity + d.content.length,
         id: d.id!, // Last entry id for that date is used for navigation
-        preview: current.preview ? current.preview + "\n---\n" + contentPreview : contentPreview
+        preview: current.preview ? current.preview + "\n---\n" + contentPreview : contentPreview,
+        hasImage: current.hasImage || !!d.imageUrl,
+        imageUrl: current.imageUrl || d.imageUrl
       });
 
       // Filter logic
@@ -84,11 +94,11 @@ export default function Home() {
       return matchesSearch && matchesTag;
     });
 
-    // Sort tags by frequency
+    // Sort tags/keywords by frequency
     const sortedTags = Object.entries(tagCounts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 6); // Top 6 tags
+      .slice(0, 8); // Top 8 items
 
     return {
       filteredDiaries: filtered,
@@ -377,9 +387,16 @@ export default function Home() {
                         <div className="p-5">
                             <div className="flex items-start gap-4 mb-3">
                                 {/* Date badge */}
-                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 flex flex-col items-center justify-center shrink-0 border border-primary/10">
-                                    <span className="text-base font-bold text-primary leading-none">{dateInfo.day}</span>
-                                    <span className="text-[9px] font-medium text-muted mt-0.5">{dateInfo.month}月</span>
+                                <div className="relative shrink-0">
+                                    <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 flex flex-col items-center justify-center shrink-0 border border-primary/10">
+                                        <span className="text-base font-bold text-primary leading-none">{dateInfo.day}</span>
+                                        <span className="text-[9px] font-medium text-muted mt-0.5">{dateInfo.month}月</span>
+                                    </div>
+                                    {diary.imageUrl && (
+                                        <div className="absolute -bottom-1 -right-1 bg-white dark:bg-card p-1 rounded-lg border border-border shadow-sm">
+                                            <ImageIcon className="w-2.5 h-2.5 text-primary" />
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Content preview */}

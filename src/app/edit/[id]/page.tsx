@@ -54,8 +54,6 @@ export default function EditDiary() {
             return;
           }
         }
-// ... (rest of the effect)
-// I'll use multi_replace or just update carefully.
 
         // 2. Check for "One Year Ago" diary based on selected date
         const selectedDate = new Date(date);
