@@ -15,9 +15,9 @@ export default function ReadDiary() {
   const params = useParams();
   const idStr = params?.id as string;
 
-  const [diary, setDiary] = useState<Diary | null>(null);
+  const [diaries, setDiaries] = useState<Diary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [deleting, setDeleting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -27,12 +27,20 @@ export default function ReadDiary() {
       return;
     }
 
-    const fetchDiary = async () => {
+    const fetchDiaries = async () => {
       try {
-        const diaries = await getDiaries(user.uid);
-        const found = diaries.find((d) => d.id === idStr);
-        if (found) {
-          setDiary(found);
+        const allDiaries = await getDiaries(user.uid);
+        const targetDiary = allDiaries.find((d) => d.id === idStr);
+        
+        if (targetDiary) {
+          // Normalize date to YYYY-MM-DD for grouping
+          const targetDateStr = new Date(targetDiary.date).toISOString().split("T")[0];
+          
+          const sameDayDiaries = allDiaries
+            .filter((d) => new Date(d.date).toISOString().split("T")[0] === targetDateStr)
+            .sort((a, b) => a.date - b.date); // Sort by sub-day time
+
+          setDiaries(sameDayDiaries);
         } else {
           router.push("/");
         }
@@ -42,20 +50,29 @@ export default function ReadDiary() {
         setLoading(false);
       }
     };
-    fetchDiary();
+    fetchDiaries();
   }, [user, authLoading, idStr, router]);
 
-  const handleDelete = async () => {
+  const handleDelete = async (id: string) => {
     if (!confirm("この日記を削除してもよろしいですか？")) return;
-    setDeleting(true);
+    setDeletingId(id);
     try {
-      await deleteDiary(idStr);
-      router.push("/");
-      router.refresh();
+      await deleteDiary(id);
+      
+      if (diaries.length > 1) {
+        // Remove from local state if there are other entries
+        setDiaries(diaries.filter(d => d.id !== id));
+        router.refresh();
+      } else {
+        // Redirect home if it was the last entry for that day
+        router.push("/");
+        router.refresh();
+      }
     } catch (error) {
       console.error("Error deleting diary:", error);
       alert("削除に失敗しました。");
-      setDeleting(false);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -70,9 +87,10 @@ export default function ReadDiary() {
     );
   }
 
-  if (!diary) return null;
+  if (diaries.length === 0) return null;
 
-  const dateObj = new Date(diary.date);
+  const firstDiary = diaries[0];
+  const dateObj = new Date(firstDiary.date);
   const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
   const formattedDate = `${dateObj.getFullYear()}年${dateObj.getMonth() + 1}月${dateObj.getDate()}日（${weekdays[dateObj.getDay()]}）`;
 
@@ -89,24 +107,6 @@ export default function ReadDiary() {
             <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200" />
             <span className="text-sm font-medium">戻る</span>
           </Link>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleDelete}
-              disabled={deleting}
-              className="flex items-center justify-center p-2.5 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-200 disabled:opacity-50 active:scale-90 cursor-pointer"
-              aria-label="日記を削除"
-            >
-              {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-            </button>
-            <Link
-              href={`/edit/${idStr}`}
-              className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-light text-white px-5 py-2.5 rounded-2xl font-medium text-sm shadow-lg hover:shadow-xl hover:opacity-90 transition-all active:scale-[0.97] btn-glow"
-            >
-              <PenSquare className="w-4 h-4" />
-              編集
-            </Link>
-          </div>
         </div>
 
         {/* Date header */}
@@ -119,31 +119,53 @@ export default function ReadDiary() {
           </div>
         </div>
 
-        {/* Diary content - full text, easy to read */}
-        <article className="bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8">
-          <div className="prose-like">
-            {diary.content.split("\n").map((line, i) => (
-              <p
-                key={i}
-                className={`text-base leading-[2] text-foreground ${
-                  line.trim() === "" ? "h-4" : ""
-                }`}
-              >
-                {line || "\u00A0"}
-              </p>
-            ))}
-          </div>
+        {/* Diary contents - Stacked list of entries for this day */}
+        <div className="space-y-6">
+          {diaries.map((diary) => (
+            <article key={diary.id} className="bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 relative">
+              <div className="absolute top-4 right-4 flex items-center gap-2">
+                <button
+                  onClick={() => handleDelete(diary.id)}
+                  disabled={deletingId === diary.id}
+                  className="flex items-center justify-center p-2 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-200 disabled:opacity-50 active:scale-90 cursor-pointer"
+                  aria-label="日記を削除"
+                >
+                  {deletingId === diary.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                </button>
+                <Link
+                  href={`/edit/${diary.id}`}
+                  className="flex items-center justify-center p-2 text-primary hover:bg-primary/10 rounded-xl transition-all duration-200 active:scale-90"
+                  aria-label="日記を編集"
+                >
+                  <PenSquare className="w-4 h-4" />
+                </Link>
+              </div>
 
-          {/* Footer info */}
-          <div className="mt-8 pt-4 border-t border-border flex items-center justify-between">
-            <span className="text-xs text-muted">
-              {diary.content.length} 文字
-            </span>
-            <span className="text-xs text-muted">
-              作成日: {new Date(diary.createdAt).toLocaleDateString("ja-JP")}
-            </span>
-          </div>
-        </article>
+              <div className="prose-like mt-4">
+                {diary.content.split("\n").map((line, i) => (
+                  <p
+                    key={i}
+                    className={`text-base leading-[2] text-foreground ${
+                      line.trim() === "" ? "h-4" : ""
+                    }`}
+                  >
+                    {line || "\u00A0"}
+                  </p>
+                ))}
+              </div>
+
+              {/* Footer info */}
+              <div className="mt-8 pt-4 border-t border-border flex items-center justify-between">
+                <span className="text-xs text-muted">
+                  {diary.content.length} 文字
+                </span>
+                <span className="text-xs text-muted">
+                  投稿時間: {new Date(diary.date).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
+                </span>
+              </div>
+            </article>
+          ))}
+        </div>
       </main>
     </>
   );
