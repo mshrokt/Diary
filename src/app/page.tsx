@@ -3,10 +3,11 @@
 import { useAuth } from "@/hooks/useAuth";
 import { getDiaries } from "@/lib/db";
 import { Diary } from "@/types/diary";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
-import { PenSquare, Calendar, ChevronRight, BookOpen, Sparkles } from "lucide-react";
+import Calendar from "@/components/Calendar";
+import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -32,6 +33,26 @@ export default function Home() {
       setLoading(false);
     }
   }, [user]);
+
+  // Build set of dates that have diary entries
+  const diaryDates = useMemo(() => {
+    const dates = new Set<string>();
+    const diaryByDate = new Map<string, string>(); // dateStr -> diary id
+    diaries.forEach((d) => {
+      const dt = new Date(d.date);
+      const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      dates.add(dateStr);
+      diaryByDate.set(dateStr, d.id!);
+    });
+    return { dates, diaryByDate };
+  }, [diaries]);
+
+  const handleCalendarDateClick = (dateStr: string) => {
+    const diaryId = diaryDates.diaryByDate.get(dateStr);
+    if (diaryId) {
+      router.push(`/read/${diaryId}`);
+    }
+  };
 
   if (!user) {
     return (
@@ -100,13 +121,14 @@ export default function Home() {
     const day = d.getDate();
     const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
     const weekday = weekdays[d.getDay()];
-    return { month, day, weekday, full: `${d.getFullYear()}年${month}月${day}日（${weekday}）` };
+    return { month, day, weekday };
   };
 
   return (
     <>
       <Navbar />
       <main className="flex-1 max-w-3xl mx-auto w-full px-5 pb-8">
+        {/* Header */}
         <div className="flex items-center justify-between mb-6 mt-6 animate-fade-in">
           <div>
             <h1 className="text-2xl font-bold tracking-tight">あなたの日記</h1>
@@ -136,55 +158,71 @@ export default function Home() {
                   <div className="flex-1 space-y-3 py-1">
                     <div className="h-3 bg-border/50 rounded-full w-1/4"></div>
                     <div className="h-3 bg-border/50 rounded-full w-3/4"></div>
-                    <div className="h-3 bg-border/50 rounded-full w-1/2"></div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        ) : diaries.length === 0 ? (
-          <div className="text-center py-20 animate-slide-up">
-            <div className="w-20 h-20 rounded-2xl bg-surface border-2 border-dashed border-border flex items-center justify-center mx-auto mb-5">
-              <BookOpen className="w-8 h-8 text-muted/50" />
-            </div>
-            <h3 className="text-lg font-semibold mb-2">まだ日記がありません</h3>
-            <p className="text-muted text-sm max-w-xs mx-auto leading-relaxed">
-              「日記を書く」ボタンから、最初のできごとを記録しましょう！
-            </p>
-          </div>
         ) : (
-          <div className="space-y-3">
-            {diaries.map((diary, index) => {
-              const dateInfo = formatDate(diary.date);
-              return (
-                <Link
-                  key={diary.id}
-                  href={`/edit/${diary.id}`}
-                  className={`group block rounded-2xl bg-card border border-border card-hover animate-fade-in opacity-0`}
-                  style={{ animationDelay: `${index * 0.06}s`, animationFillMode: "forwards" }}
-                >
-                  <div className="flex items-start gap-4 p-4">
-                    {/* Date badge */}
-                    <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 flex flex-col items-center justify-center shrink-0 border border-primary/10">
-                      <span className="text-lg font-bold text-primary leading-none">{dateInfo.day}</span>
-                      <span className="text-[10px] font-medium text-muted mt-0.5">{dateInfo.month}月 {dateInfo.weekday}</span>
-                    </div>
+          <div className="space-y-6">
+            {/* Calendar */}
+            <Calendar
+              diaryDates={diaryDates.dates}
+              onDateClick={handleCalendarDateClick}
+            />
 
-                    {/* Content preview */}
-                    <div className="flex-1 min-w-0 py-0.5">
-                      <p className="text-sm text-foreground line-clamp-2 leading-relaxed">
-                        {diary.content}
-                      </p>
-                    </div>
+            {/* Diary list */}
+            {diaries.length === 0 ? (
+              <div className="text-center py-16 animate-slide-up">
+                <div className="w-20 h-20 rounded-2xl bg-surface border-2 border-dashed border-border flex items-center justify-center mx-auto mb-5">
+                  <BookOpen className="w-8 h-8 text-muted/50" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">まだ日記がありません</h3>
+                <p className="text-muted text-sm max-w-xs mx-auto leading-relaxed">
+                  「日記を書く」ボタンから、最初のできごとを記録しましょう！
+                </p>
+              </div>
+            ) : (
+              <div>
+                <h2 className="text-sm font-semibold text-muted mb-3 flex items-center gap-2">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  最近の日記
+                </h2>
+                <div className="space-y-3">
+                  {diaries.map((diary, index) => {
+                    const dateInfo = formatDate(diary.date);
+                    return (
+                      <Link
+                        key={diary.id}
+                        href={`/read/${diary.id}`}
+                        className="group block rounded-2xl bg-card border border-border card-hover animate-fade-in opacity-0"
+                        style={{ animationDelay: `${index * 0.06}s`, animationFillMode: "forwards" }}
+                      >
+                        <div className="flex items-start gap-4 p-4">
+                          {/* Date badge */}
+                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 flex flex-col items-center justify-center shrink-0 border border-primary/10">
+                            <span className="text-lg font-bold text-primary leading-none">{dateInfo.day}</span>
+                            <span className="text-[10px] font-medium text-muted mt-0.5">{dateInfo.month}月 {dateInfo.weekday}</span>
+                          </div>
 
-                    {/* Arrow */}
-                    <div className="pt-3 shrink-0">
-                      <ChevronRight className="w-4 h-4 text-muted/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200" />
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
+                          {/* Content preview */}
+                          <div className="flex-1 min-w-0 py-0.5">
+                            <p className="text-sm text-foreground line-clamp-2 leading-relaxed">
+                              {diary.content}
+                            </p>
+                          </div>
+
+                          {/* Arrow */}
+                          <div className="pt-3 shrink-0">
+                            <ChevronRight className="w-4 h-4 text-muted/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200" />
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
