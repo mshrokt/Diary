@@ -7,7 +7,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Calendar from "@/components/Calendar";
-import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles } from "lucide-react";
+import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, Search, Tag, X } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
@@ -15,6 +15,8 @@ export default function Home() {
   const router = useRouter();
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -34,23 +36,41 @@ export default function Home() {
     }
   }, [user]);
 
-  // Build set of dates that have diary entries
-  const diaryDates = useMemo(() => {
-    const dates = new Set<string>();
-    const diaryByDate = new Map<string, string>(); // dateStr -> diary id
-    diaries.forEach((d) => {
+  // Derived data for display and filtering
+  const { filteredDiaries, diaryData, allTags } = useMemo(() => {
+    const dataMap = new Map<string, { intensity: number; id: string }>();
+    const tagSet = new Set<string>();
+
+    const filtered = diaries.filter((d) => {
+      // Collect tags
+      d.tags?.forEach(t => tagSet.add(t));
+
+      // Build calendar data (intensity based on character count)
       const dt = new Date(d.date);
       const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-      dates.add(dateStr);
-      diaryByDate.set(dateStr, d.id!);
+      const current = dataMap.get(dateStr) || { intensity: 0, id: d.id! };
+      dataMap.set(dateStr, {
+        intensity: current.intensity + d.content.length,
+        id: d.id! // Last entry id for that date is used for navigation
+      });
+
+      // Filter logic
+      const matchesSearch = d.content.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesTag = !selectedTag || d.tags?.includes(selectedTag);
+      return matchesSearch && matchesTag;
     });
-    return { dates, diaryByDate };
-  }, [diaries]);
+
+    return {
+      filteredDiaries: filtered,
+      diaryData: dataMap,
+      allTags: Array.from(tagSet).sort()
+    };
+  }, [diaries, searchQuery, selectedTag]);
 
   const handleCalendarDateClick = (dateStr: string) => {
-    const diaryId = diaryDates.diaryByDate.get(dateStr);
-    if (diaryId) {
-      router.push(`/read/${diaryId}`);
+    const info = diaryData.get(dateStr);
+    if (info) {
+      router.push(`/read/${info.id}`);
     }
   };
 
@@ -127,7 +147,7 @@ export default function Home() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 max-w-3xl mx-auto w-full px-5 pb-8">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-5 pb-12">
         {/* Header */}
         <div className="flex items-center justify-between mb-6 mt-6 animate-fade-in">
           <div>
@@ -165,57 +185,128 @@ export default function Home() {
           </div>
         ) : (
           <div className="space-y-6">
-            {/* Calendar */}
+            {/* Search and Tags */}
+            <div className="grid gap-4 animate-fade-in">
+                {/* Search Bar */}
+                <div className="relative group">
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted group-focus-within:text-primary transition-colors" />
+                    <input 
+                        type="text"
+                        placeholder="日記を検索..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="w-full bg-card border border-border rounded-2xl py-3 pl-11 pr-4 text-sm outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all"
+                    />
+                    {searchQuery && (
+                        <button 
+                            onClick={() => setSearchQuery("")}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-surface rounded-full transition-colors"
+                        >
+                            <X className="w-3 h-3 text-muted" />
+                        </button>
+                    )}
+                </div>
+
+                {/* Tag Chips */}
+                {allTags.length > 0 && (
+                    <div className="flex flex-wrap gap-2 items-center">
+                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider mr-1">Tags:</span>
+                        {allTags.map(tag => (
+                            <button
+                                key={tag}
+                                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                                className={`
+                                    flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all
+                                    ${selectedTag === tag 
+                                        ? "bg-primary text-white shadow-sm shadow-primary/30" 
+                                        : "bg-surface border border-border text-muted hover:border-primary/40 hover:text-primary"}
+                                `}
+                            >
+                                <Tag className="w-3 h-3" />
+                                {tag}
+                            </button>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            {/* Calendar / Heatmap */}
             <Calendar
-              diaryDates={diaryDates.dates}
+              diaryData={diaryData}
               onDateClick={handleCalendarDateClick}
             />
 
             {/* Diary list */}
-            {diaries.length === 0 ? (
-              <div className="text-center py-16 animate-slide-up">
-                <div className="w-20 h-20 rounded-2xl bg-surface border-2 border-dashed border-border flex items-center justify-center mx-auto mb-5">
-                  <BookOpen className="w-8 h-8 text-muted/50" />
+            {filteredDiaries.length === 0 ? (
+              <div className="text-center py-16 animate-slide-up bg-card rounded-3xl border border-dashed border-border/50">
+                <div className="w-16 h-16 rounded-2xl bg-surface border border-border flex items-center justify-center mx-auto mb-4">
+                  <Search className="w-6 h-6 text-muted/30" />
                 </div>
-                <h3 className="text-lg font-semibold mb-2">まだ日記がありません</h3>
-                <p className="text-muted text-sm max-w-xs mx-auto leading-relaxed">
-                  「日記を書く」ボタンから、最初のできごとを記録しましょう！
+                <h3 className="text-base font-semibold mb-1">見つかりませんでした</h3>
+                <p className="text-muted text-xs max-w-[200px] mx-auto leading-relaxed">
+                  キーワードやタグ、もしくは日付を変えてみてください
                 </p>
+                {(searchQuery || selectedTag) && (
+                    <button 
+                        onClick={() => {setSearchQuery(""); setSelectedTag(null);}}
+                        className="mt-4 text-xs font-medium text-primary hover:underline"
+                    >
+                        フィルターをクリア
+                    </button>
+                )}
               </div>
             ) : (
               <div>
-                <h2 className="text-sm font-semibold text-muted mb-3 flex items-center gap-2">
-                  <CalendarIcon className="w-3.5 h-3.5" />
-                  最近の日記
+                <h2 className="text-sm font-semibold text-muted mb-3 flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <CalendarIcon className="w-3.5 h-3.5" />
+                    {searchQuery || selectedTag ? "検索結果" : "最近の日記"}
+                  </span>
+                  <span className="text-[10px] font-medium bg-surface px-2 py-0.5 rounded-full border border-border">
+                    {filteredDiaries.length}件
+                  </span>
                 </h2>
-                <div className="space-y-3">
-                  {diaries.map((diary, index) => {
+                <div className="space-y-4">
+                  {filteredDiaries.map((diary, index) => {
                     const dateInfo = formatDate(diary.date);
                     return (
                       <Link
                         key={diary.id}
                         href={`/read/${diary.id}`}
                         className="group block rounded-2xl bg-card border border-border card-hover animate-fade-in opacity-0"
-                        style={{ animationDelay: `${index * 0.06}s`, animationFillMode: "forwards" }}
+                        style={{ animationDelay: `${index * 0.05}s`, animationFillMode: "forwards" }}
                       >
-                        <div className="flex items-start gap-4 p-4">
-                          {/* Date badge */}
-                          <div className="w-14 h-14 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 flex flex-col items-center justify-center shrink-0 border border-primary/10">
-                            <span className="text-lg font-bold text-primary leading-none">{dateInfo.day}</span>
-                            <span className="text-[10px] font-medium text-muted mt-0.5">{dateInfo.month}月 {dateInfo.weekday}</span>
-                          </div>
+                        <div className="p-5">
+                            <div className="flex items-start gap-4 mb-3">
+                                {/* Date badge */}
+                                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 flex flex-col items-center justify-center shrink-0 border border-primary/10">
+                                    <span className="text-base font-bold text-primary leading-none">{dateInfo.day}</span>
+                                    <span className="text-[9px] font-medium text-muted mt-0.5">{dateInfo.month}月</span>
+                                </div>
 
-                          {/* Content preview */}
-                          <div className="flex-1 min-w-0 py-0.5">
-                            <p className="text-sm text-foreground line-clamp-2 leading-relaxed">
-                              {diary.content}
-                            </p>
-                          </div>
+                                {/* Content preview */}
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm text-foreground line-clamp-2 leading-relaxed mb-2">
+                                    {diary.content}
+                                    </p>
+                                    
+                                    {/* Tags in card */}
+                                    {diary.tags && diary.tags.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {diary.tags.map(tag => (
+                                                <span key={tag} className="text-[9px] font-medium text-primary bg-primary/5 px-2 py-0.5 rounded-lg">
+                                                    #{tag}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
 
-                          {/* Arrow */}
-                          <div className="pt-3 shrink-0">
-                            <ChevronRight className="w-4 h-4 text-muted/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200" />
-                          </div>
+                                {/* Arrow */}
+                                <div className="shrink-0">
+                                    <ChevronRight className="w-4 h-4 text-muted/40 group-hover:text-primary group-hover:translate-x-0.5 transition-all duration-200" />
+                                </div>
+                            </div>
                         </div>
                       </Link>
                     );

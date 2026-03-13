@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { getDiaries, deleteDiary } from "@/lib/db";
 import { Diary } from "@/types/diary";
-import { ArrowLeft, PenSquare, Trash2, Calendar, Loader2 } from "lucide-react";
+import { ArrowLeft, PenSquare, Trash2, Calendar, Loader2, Tag } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
@@ -140,6 +140,18 @@ export default function ReadDiary() {
                   <PenSquare className="w-4 h-4" />
                 </Link>
               </div>
+
+              {/* Tags in reader */}
+              {diary.tags && diary.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {diary.tags.map(tag => (
+                    <span key={tag} className="flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                      <Tag className="w-3 h-3" />
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
 
               <div className="prose-like mt-4">
                 {diary.content.split("\n").map((line, i) => (

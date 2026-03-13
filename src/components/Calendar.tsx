@@ -4,11 +4,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 interface CalendarProps {
-  diaryDates: Set<string>; // "YYYY-MM-DD" strings
+  diaryData: Map<string, { intensity: number; id: string }>; // "YYYY-MM-DD" -> { intensity, id }
   onDateClick: (dateStr: string) => void;
 }
 
-export default function Calendar({ diaryDates, onDateClick }: CalendarProps) {
+export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const year = currentDate.getFullYear();
@@ -47,9 +47,17 @@ export default function Calendar({ diaryDates, onDateClick }: CalendarProps) {
   const monthName = `${year}年${month + 1}月`;
 
   // Count diary entries this month
-  const entriesThisMonth = Array.from(diaryDates).filter((d) => {
+  const entriesThisMonth = Array.from(diaryData.keys()).filter((d) => {
     return d.startsWith(`${year}-${String(month + 1).padStart(2, "0")}`);
   }).length;
+
+  const getIntensityClass = (intensity: number) => {
+    if (intensity === 0) return "";
+    if (intensity < 100) return "bg-primary/20 text-primary font-semibold";
+    if (intensity < 500) return "bg-primary/40 text-white font-bold";
+    if (intensity < 1000) return "bg-primary/70 text-white font-bold";
+    return "bg-primary text-white font-extrabold shadow-sm shadow-primary/30";
+  };
 
   return (
     <div className="bg-card rounded-3xl border border-border shadow-sm p-5 animate-fade-in">
@@ -107,7 +115,8 @@ export default function Calendar({ diaryDates, onDateClick }: CalendarProps) {
           }
 
           const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-          const hasDiary = diaryDates.has(dateStr);
+          const dayInfo = diaryData.get(dateStr);
+          const hasDiary = !!dayInfo;
           const isToday = dateStr === todayStr;
           const dayOfWeek = (startDayOfWeek + day - 1) % 7;
           const isSunday = dayOfWeek === 0;
@@ -118,49 +127,49 @@ export default function Calendar({ diaryDates, onDateClick }: CalendarProps) {
               key={dateStr}
               onClick={() => hasDiary && onDateClick(dateStr)}
               className={`
-                relative flex flex-col items-center justify-center py-2 rounded-xl transition-all duration-200
-                ${hasDiary ? "cursor-pointer hover:bg-primary/10 active:scale-90" : "cursor-default"}
-                ${isToday ? "bg-primary/5 ring-1 ring-primary/30" : ""}
+                relative flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all duration-200
+                ${hasDiary ? "cursor-pointer hover:opacity-80 active:scale-90" : "cursor-default hover:bg-surface-hover/50"}
+                ${isToday && !hasDiary ? "ring-1 ring-primary/30 bg-primary/5" : ""}
+                ${hasDiary ? getIntensityClass(dayInfo.intensity) : ""}
               `}
             >
               <span
                 className={`text-sm leading-none ${
-                  isToday
-                    ? "font-bold text-primary"
-                    : hasDiary
-                    ? "font-semibold text-foreground"
-                    : isSunday
-                    ? "text-red-400/60"
-                    : isSaturday
-                    ? "text-blue-400/60"
-                    : "text-muted/60"
+                    isToday && !hasDiary ? "font-bold text-primary" :
+                    hasDiary ? "" :
+                    isSunday ? "text-red-400/60" :
+                    isSaturday ? "text-blue-400/60" :
+                    "text-muted/60"
                 }`}
               >
                 {day}
               </span>
-              {/* Diary indicator dot */}
-              {hasDiary && (
-                <div className="mt-1 flex items-center gap-0.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-gradient-to-r from-primary to-accent shadow-sm" />
-                </div>
+              {isToday && hasDiary && (
+                <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent border-2 border-card rounded-full shadow-sm" />
               )}
             </button>
           );
         })}
       </div>
 
-      {/* Streak info */}
-      {diaryDates.size > 0 && (
-        <div className="mt-4 pt-3 border-t border-border flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-gradient-to-r from-primary to-accent" />
-            <span className="text-xs text-muted">日記を書いた日</span>
+      {/* Legend & Stats */}
+      <div className="mt-5 pt-3 border-t border-border space-y-3">
+        <div className="flex items-center justify-between text-[10px] text-muted">
+          <div className="flex items-center gap-1.5">
+            <span>少ない</span>
+            <div className="w-2.5 h-2.5 rounded-[3px] bg-primary/20" />
+            <div className="w-2.5 h-2.5 rounded-[3px] bg-primary/40" />
+            <div className="w-2.5 h-2.5 rounded-[3px] bg-primary/70" />
+            <div className="w-2.5 h-2.5 rounded-[3px] bg-primary" />
+            <span>多い</span>
           </div>
-          <span className="text-xs font-medium text-primary">
-            合計 {diaryDates.size} 日
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-primary">
+                記録した日: {diaryData.size}日
+            </span>
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }

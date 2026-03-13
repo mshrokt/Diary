@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { createDiary, getDiaries, updateDiary, deleteDiary } from "@/lib/db";
-import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
@@ -17,6 +17,7 @@ export default function EditDiary() {
 
   const [content, setContent] = useState("");
   const [date, setDate] = useState<number>(Date.now());
+  const [tagsInput, setTagsInput] = useState("");
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -37,6 +38,7 @@ export default function EditDiary() {
           if (found) {
             setContent(found.content);
             setDate(found.date);
+            setTagsInput(found.tags?.join(" ") || "");
           } else {
             router.push("/");
           }
@@ -53,11 +55,15 @@ export default function EditDiary() {
   const handleSave = async () => {
     if (!user || !content.trim()) return;
     setSaving(true);
+    
+    // Parse tags: split by space, remove duplicates, filter empty
+    const tags = Array.from(new Set(tagsInput.split(/\s+/).filter(t => t.trim() !== "")));
+
     try {
       if (isNew) {
-        await createDiary(user.uid, content, date);
+        await createDiary(user.uid, content, date, tags);
       } else {
-        await updateDiary(idStr, content, date);
+        await updateDiary(idStr, content, date, tags);
       }
       router.push("/");
       router.refresh();
@@ -167,6 +173,20 @@ export default function EditDiary() {
               style={{ minHeight: "200px" }}
               autoFocus
             />
+          </div>
+
+          {/* Tags input */}
+          <div className="px-6 py-3 border-t border-border bg-surface/30">
+            <div className="flex items-center gap-3">
+              <Tag className="w-4 h-4 text-muted shrink-0" />
+              <input
+                type="text"
+                value={tagsInput}
+                onChange={(e) => setTagsInput(e.target.value)}
+                placeholder="タグを追加 (スペース区切り)"
+                className="w-full bg-transparent outline-none text-sm text-foreground placeholder-muted/40"
+              />
+            </div>
           </div>
 
           {/* Character count */}
