@@ -5,7 +5,9 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { createDiary, getDiaries, updateDiary, deleteDiary } from "@/lib/db";
 import { Diary } from "@/types/diary";
-import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight } from "lucide-react";
+import { storage } from "@/lib/firebase";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight, Image as ImageIcon, X } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
@@ -23,6 +25,9 @@ export default function EditDiary() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -43,11 +48,14 @@ export default function EditDiary() {
             setContent(found.content);
             setDate(found.date);
             setTagsInput(found.tags?.join(" ") || "");
+            setImageUrl(found.imageUrl || null);
           } else {
             router.push("/");
             return;
           }
         }
+// ... (rest of the effect)
+// I'll use multi_replace or just update carefully.
 
         // 2. Check for "One Year Ago" diary based on selected date
         const selectedDate = new Date(date);
@@ -82,10 +90,19 @@ export default function EditDiary() {
     const tags = Array.from(new Set(tagsInput.split(/\s+/).filter(t => t.trim() !== "")));
 
     try {
+      let finalImageUrl = imageUrl;
+
+      // 1. Upload image if selected
+      if (imageFile) {
+        const fileRef = ref(storage, `diaries/${user.uid}/${Date.now()}_${imageFile.name}`);
+        const snapshot = await uploadBytes(fileRef, imageFile);
+        finalImageUrl = await getDownloadURL(snapshot.ref);
+      }
+
       if (isNew) {
-        await createDiary(user.uid, content, date, tags);
+        await createDiary(user.uid, content, date, tags, finalImageUrl);
       } else {
-        await updateDiary(idStr, content, date, tags);
+        await updateDiary(idStr, content, date, tags, finalImageUrl);
       }
       router.push("/");
       router.refresh();
@@ -94,6 +111,18 @@ export default function EditDiary() {
       alert("保存に失敗しました。もう一度お試しください。");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -185,6 +214,27 @@ export default function EditDiary() {
             )}
           </div>
 
+          {/* Image preview/upload */}
+          {(imagePreview || imageUrl) && (
+            <div className="relative mx-6 mt-4 rounded-2xl overflow-hidden aspect-video border border-border group">
+              <img 
+                src={imagePreview || imageUrl || ""} 
+                alt="Diary cover" 
+                className="w-full h-full object-cover" 
+              />
+              <button 
+                onClick={() => {
+                  setImageFile(null);
+                  setImagePreview(null);
+                  setImageUrl(null);
+                }}
+                className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
           {/* Text area */}
           <div className="flex-1 flex flex-col min-h-0 p-6">
             <textarea
@@ -199,15 +249,28 @@ export default function EditDiary() {
 
           {/* Tags input */}
           <div className="px-6 py-3 border-t border-border bg-surface/30">
-            <div className="flex items-center gap-3">
-              <Tag className="w-4 h-4 text-muted shrink-0" />
-              <input
-                type="text"
-                value={tagsInput}
-                onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="タグを追加 (スペース区切り)"
-                className="w-full bg-transparent outline-none text-sm text-foreground placeholder-muted/40"
-              />
+            <div className="flex items-center gap-4">
+               <div className="flex items-center gap-3 flex-1">
+                <Tag className="w-4 h-4 text-muted shrink-0" />
+                <input
+                  type="text"
+                  value={tagsInput}
+                  onChange={(e) => setTagsInput(e.target.value)}
+                  placeholder="タグを追加 (スペース区切り)"
+                  className="w-full bg-transparent outline-none text-sm text-foreground placeholder-muted/40"
+                />
+              </div>
+              
+              <label className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-medium text-muted hover:text-primary hover:border-primary/40 transition-all cursor-pointer">
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>画像を{imagePreview || imageUrl ? "表示" : "追加"}</span>
+                <input 
+                  type="file" 
+                  accept="image/*" 
+                  onChange={handleImageChange}
+                  className="hidden" 
+                />
+              </label>
             </div>
           </div>
 
@@ -226,18 +289,31 @@ export default function EditDiary() {
               <History className="w-3 h-3 text-primary" />
               1年前の今日のあなた
             </h3>
-            <Link
-              href={`/read/${lastYearDiary.id}`}
-              className="group block bg-card/40 backdrop-blur-sm border border-primary/20 rounded-2xl p-4 hover:border-primary/40 transition-all card-hover"
-            >
-              <p className="text-xs text-foreground/70 line-clamp-2 leading-relaxed italic">
-                「{lastYearDiary.content}」
-              </p>
-              <div className="mt-2 flex items-center justify-end gap-1 text-[10px] font-bold text-primary">
-                読み返す
-                <ChevronRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-              </div>
-            </Link>
+            <div className="group block bg-card/40 backdrop-blur-sm border border-primary/20 rounded-2xl hover:border-primary/40 transition-all card-hover">
+                <div className="flex gap-4 p-4">
+                  {lastYearDiary.imageUrl && (
+                    <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-border/50">
+                      <img src={lastYearDiary.imageUrl} alt="Last year" className="w-full h-full object-cover" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest mb-1">
+                      <History className="w-3 h-3" />
+                      1年前の今日
+                    </div>
+                    <p className="text-xs text-foreground/80 line-clamp-2 italic mb-2">
+                      「{lastYearDiary.content}」
+                    </p>
+                    <Link
+                      href={`/read/${lastYearDiary.id}`}
+                      className="inline-flex items-center gap-1 text-[10px] font-bold text-primary hover:underline"
+                    >
+                      詳しく読む
+                      <ChevronRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+            </div>
           </div>
         )}
       </main>
