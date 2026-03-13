@@ -9,7 +9,7 @@ import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
 export default function EditDiary() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const params = useParams();
   const idStr = params?.id as string;
@@ -23,6 +23,8 @@ export default function EditDiary() {
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    if (authLoading) return; // Wait for initial auth state
+
     if (!user) {
       router.push("/");
       return;
@@ -49,7 +51,7 @@ export default function EditDiary() {
       };
       fetchDiary();
     }
-  }, [user, isNew, idStr, router]);
+  }, [user, authLoading, isNew, idStr, router]);
 
   const handleSave = async () => {
     if (!user || !content.trim()) return;
