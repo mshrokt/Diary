@@ -16,14 +16,13 @@ export default function EditDiary() {
   const isNew = idStr === "new";
 
   const [content, setContent] = useState("");
-  // Stored internally as a timestamp
   const [date, setDate] = useState<number>(Date.now());
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    if (authLoading) return; // Wait for initial auth state
+    if (authLoading) return;
 
     if (!user) {
       router.push("/");
@@ -33,8 +32,6 @@ export default function EditDiary() {
     if (!isNew) {
       const fetchDiary = async () => {
         try {
-          // In a real app, you might want a getDiaryById function.
-          // For simplicity here, we fetch all and find the one.
           const diaries = await getDiaries(user.uid);
           const found = diaries.find((d) => d.id === idStr);
           if (found) {
@@ -86,13 +83,15 @@ export default function EditDiary() {
     }
   };
 
-  // Convert timestamp to YYYY-MM-DD for the date input
   const dateStr = new Date(date).toISOString().split("T")[0];
 
   if (loading || authLoading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted">読み込み中...</p>
+        </div>
       </div>
     );
   }
@@ -100,31 +99,32 @@ export default function EditDiary() {
   return (
     <>
       <Navbar />
-      <main className="flex-1 max-w-2xl mx-auto w-full p-4 flex flex-col h-[calc(100vh-3.5rem)]">
-        <div className="flex items-center justify-between mb-6 mt-2">
+      <main className="flex-1 max-w-3xl mx-auto w-full px-5 flex flex-col h-[calc(100vh-4rem)] animate-fade-in">
+        {/* Top bar */}
+        <div className="flex items-center justify-between py-4">
           <Link
             href="/"
-            className="flex items-center gap-2 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
+            className="flex items-center gap-2 text-muted hover:text-foreground transition-colors duration-200 group"
           >
-            <ArrowLeft className="w-5 h-5" />
-            <span className="font-medium">戻る</span>
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform duration-200" />
+            <span className="text-sm font-medium">戻る</span>
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             {!isNew && (
               <button
                 onClick={handleDelete}
                 disabled={deleting}
-                className="flex items-center justify-center p-2.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full transition-colors disabled:opacity-50"
+                className="flex items-center justify-center p-2.5 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-200 disabled:opacity-50 active:scale-90 cursor-pointer"
                 aria-label="日記を削除"
               >
-                {deleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
               </button>
             )}
             <button
               onClick={handleSave}
               disabled={saving || !content.trim()}
-              className="flex items-center gap-2 bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-200 px-5 py-2.5 rounded-full font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm border border-transparent dark:border-gray-200"
+              className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-light text-white px-5 py-2.5 rounded-2xl font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:opacity-90 active:scale-[0.97] btn-glow cursor-pointer"
             >
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               保存
@@ -132,10 +132,12 @@ export default function EditDiary() {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-gray-800 flex-1 flex flex-col min-h-0 mb-6">
-          <div className="flex items-center gap-3 mb-6 pb-6 border-b border-gray-100 dark:border-gray-800">
-            <div className="p-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl">
-              <CalendarIcon className="w-5 h-5" />
+        {/* Editor card */}
+        <div className="bg-card rounded-3xl border border-border shadow-sm flex-1 flex flex-col min-h-0 mb-6 overflow-hidden">
+          {/* Date picker */}
+          <div className="flex items-center gap-3 px-6 py-4 border-b border-border">
+            <div className="p-2 bg-gradient-to-br from-primary/10 to-accent/10 dark:from-primary/20 dark:to-accent/20 rounded-xl">
+              <CalendarIcon className="w-4 h-4 text-primary" />
             </div>
             <input
               type="date"
@@ -146,18 +148,33 @@ export default function EditDiary() {
                   setDate(newDate.getTime());
                 }
               }}
-              className="bg-transparent text-lg font-semibold text-gray-900 dark:text-white outline-none cursor-pointer hover:text-blue-500 focus:text-blue-600 transition-colors"
+              className="bg-transparent text-base font-semibold text-foreground outline-none cursor-pointer hover:text-primary focus:text-primary transition-colors"
+            />
+            {isNew && (
+              <span className="ml-auto text-xs font-medium text-accent bg-accent/10 px-2.5 py-1 rounded-full">
+                新規
+              </span>
+            )}
+          </div>
+
+          {/* Text area */}
+          <div className="flex-1 flex flex-col min-h-0 p-6">
+            <textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="今日のできごとや思考をここに書き留めましょう..."
+              className="w-full flex-1 bg-transparent resize-none outline-none text-foreground text-base leading-[1.8] placeholder-muted/50"
+              style={{ minHeight: "200px" }}
+              autoFocus
             />
           </div>
 
-          <textarea
-            value={content}
-            onChange={(e) => setContent(e.target.value)}
-            placeholder="今日のできごとや思考をここに書き留めましょう..."
-            className="w-full flex-1 bg-transparent resize-none outline-none text-gray-800 dark:text-gray-200 text-lg leading-relaxed placeholder-gray-400 dark:placeholder-gray-600"
-            style={{ minHeight: "200px" }}
-            autoFocus
-          />
+          {/* Character count */}
+          <div className="px-6 py-3 border-t border-border flex items-center justify-end">
+            <span className="text-xs text-muted">
+              {content.length} 文字
+            </span>
+          </div>
         </div>
       </main>
     </>

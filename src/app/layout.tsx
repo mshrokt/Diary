@@ -6,13 +6,13 @@ import AuthProvider from "@/components/AuthProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "My Diary",
-  description: "A simple, beautiful multi-device diary app.",
+  title: "My Diary | あなたの日記帳",
+  description: "いつでも、どこでも、あなたの想いを記録。マルチデバイス対応の日記アプリ。",
   manifest: "/manifest.json",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#ffffff",
+  themeColor: "#7c5cbf",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className={`${inter.className} min-h-screen flex flex-col`}>
+      <body className={`${inter.className} min-h-screen flex flex-col bg-background text-foreground`}>
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

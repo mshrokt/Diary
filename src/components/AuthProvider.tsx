@@ -10,7 +10,10 @@ export default function AuthProvider({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm text-muted">読み込み中...</p>
+        </div>
       </div>
     );
   }
