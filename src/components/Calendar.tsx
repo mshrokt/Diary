@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 interface CalendarProps {
-  diaryData: Map<string, { intensity: number; id: string }>; // "YYYY-MM-DD" -> { intensity, id }
+  diaryData: Map<string, { intensity: number; id: string; preview?: string }>; // "YYYY-MM-DD" -> { intensity, id, preview }
   onDateClick: (dateStr: string) => void;
 }
 
@@ -127,7 +127,7 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
               key={dateStr}
               onClick={() => hasDiary && onDateClick(dateStr)}
               className={`
-                relative flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all duration-200
+                relative flex flex-col items-center justify-center py-2 px-1 rounded-xl transition-all duration-200 group
                 ${hasDiary ? "cursor-pointer hover:opacity-80 active:scale-90" : "cursor-default hover:bg-surface-hover/50"}
                 ${isToday && !hasDiary ? "ring-1 ring-primary/30 bg-primary/5" : ""}
                 ${hasDiary ? getIntensityClass(dayInfo.intensity) : ""}
@@ -146,6 +146,16 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
               </span>
               {isToday && hasDiary && (
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent border-2 border-card rounded-full shadow-sm" />
+              )}
+
+              {/* Tooltip on hover */}
+              {hasDiary && dayInfo.preview && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-card/90 backdrop-blur-md border border-border rounded-2xl shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                  <p className="text-[10px] text-foreground leading-relaxed line-clamp-4 whitespace-pre-wrap text-left">
+                    {dayInfo.preview}
+                  </p>
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-card/90" />
+                </div>
               )}
             </button>
           );

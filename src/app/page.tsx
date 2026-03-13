@@ -38,7 +38,7 @@ export default function Home() {
 
   // Derived data for display and filtering
   const { filteredDiaries, diaryData, allTags } = useMemo(() => {
-    const dataMap = new Map<string, { intensity: number; id: string }>();
+    const dataMap = new Map<string, { intensity: number; id: string; preview: string }>();
     const tagSet = new Set<string>();
 
     const filtered = diaries.filter((d) => {
@@ -48,10 +48,14 @@ export default function Home() {
       // Build calendar data (intensity based on character count)
       const dt = new Date(d.date);
       const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-      const current = dataMap.get(dateStr) || { intensity: 0, id: d.id! };
+      const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "" };
+      
+      const contentPreview = d.content.length > 40 ? d.content.substring(0, 40) + "..." : d.content;
+      
       dataMap.set(dateStr, {
         intensity: current.intensity + d.content.length,
-        id: d.id! // Last entry id for that date is used for navigation
+        id: d.id!, // Last entry id for that date is used for navigation
+        preview: current.preview ? current.preview + "\n---\n" + contentPreview : contentPreview
       });
 
       // Filter logic
