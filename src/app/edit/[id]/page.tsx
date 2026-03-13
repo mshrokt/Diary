@@ -89,7 +89,7 @@ export default function EditDiary() {
   // Convert timestamp to YYYY-MM-DD for the date input
   const dateStr = new Date(date).toISOString().split("T")[0];
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
       <div className="flex-1 flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin text-blue-500" />

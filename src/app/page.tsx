@@ -4,12 +4,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { getDiaries } from "@/lib/db";
 import { Diary } from "@/types/diary";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import { PenSquare, Calendar, ChevronRight, BookHeart } from "lucide-react";
 import Link from "next/link";
 
 export default function Home() {
   const { user, loginWithGoogle } = useAuth();
+  const router = useRouter();
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -75,13 +77,13 @@ export default function Home() {
       <main className="flex-1 max-w-2xl mx-auto w-full p-4 relative">
         <div className="flex items-center justify-between mb-8 mt-4">
           <h1 className="text-2xl font-bold">あなたの日記</h1>
-          <Link
-            href="/edit/new"
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition duration-200 shadow-md font-medium text-sm"
+          <button
+            onClick={() => router.push("/edit/new")}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl transition duration-200 shadow-md font-medium text-sm cursor-pointer"
           >
             <PenSquare className="w-4 h-4" />
             日記を書く
-          </Link>
+          </button>
         </div>
 
         {loading ? (

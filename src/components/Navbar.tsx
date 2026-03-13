@@ -1,3 +1,5 @@
+"use client";
+
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { LogOut, BookHeart, Sun, Moon } from "lucide-react";
