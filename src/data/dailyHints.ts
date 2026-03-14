@@ -35,14 +35,17 @@ export const getDailyHint = (date: Date): DailyHint => {
   const key = `${month}-${day}`;
 
   if (hints[key]) {
-    return hints[key];
+    return {
+      target: hints[key].target,
+      question: `今日は${hints[key].target}です。${hints[key].question}`
+    };
   }
 
   // 記念日がない日は、日付をシードにして汎用リストから選ぶ
   const seed = date.getDate() + date.getMonth();
   const index = seed % generalQuestions.length;
   return {
-    target: "今日という日",
-    question: generalQuestions[index]
+    target: "", // 「今日という日」を消去するため空にする
+    question: `今日は${date.getMonth() + 1}月${date.getDate()}日です。${generalQuestions[index]}`
   };
 };

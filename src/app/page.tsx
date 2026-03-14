@@ -205,14 +205,23 @@ export default function Home() {
         {/* Subtle Header / Today's Hint */}
         {!searchQuery && !selectedTag ? (
           <div className="mb-8 mt-6 animate-fade-in">
-            <div className="bg-card/50 backdrop-blur-sm border border-border rounded-3xl p-6 shadow-sm group">
+            <div className="p-6 group">
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-primary" />
-                    <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
-                      {todayHint.target}
+                    <span className="text-[10px] font-medium text-muted">
+                      {(() => {
+                        const now = new Date();
+                        const weekdays = ["日", "月", "火", "水", "木", "金", "土"];
+                        return `${now.getMonth() + 1}月${now.getDate()}日(${weekdays[now.getDay()]})`;
+                      })()}
                     </span>
+                    {todayHint.target && (
+                      <span className="text-[10px] font-bold text-primary uppercase tracking-widest">
+                        {todayHint.target}
+                      </span>
+                    )}
                   </div>
                   <span className="text-[10px] font-medium text-muted bg-surface px-2 py-0.5 rounded-full border border-border">
                     計 {diaries.length}件の記録
@@ -224,9 +233,7 @@ export default function Home() {
                     <h1 className="text-lg font-bold text-foreground leading-tight mb-2">
                       {todayHint.question}
                     </h1>
-                    <p className="text-muted text-xs">
-                      今の気持ちを言葉にしてみませんか？
-                    </p>
+
                   </div>
                   <button 
                     onClick={() => router.push("/edit/new")}
