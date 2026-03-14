@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { LogOut, BookOpen, Sun, Moon, Bell, BellOff, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
-import { saveSubscription } from "@/lib/db";
+import { saveSubscription, deleteSubscription } from "@/lib/db";
 
 const VAPID_PUBLIC_KEY = "BNBrxTJwNdHvA2Qmf0VvCt_Q0rF9jSm6XoN6SzptCwRpkcb60l5U85iknCX82Bl_L1SvpN-KjGEaxv4MUvXRjWo";
 
@@ -24,6 +24,7 @@ export default function Navbar() {
   const [isDark, setIsDark] = useState(false);
   const [isSubscribing, setIsSubscribing] = useState(false);
   const [notificationStatus, setNotificationStatus] = useState<"default" | "granted" | "denied" | "unsupported">("default");
+  const [isSubscribed, setIsSubscribed] = useState(false);
 
   useEffect(() => {
     const isDarkStored = localStorage.getItem("theme") === "dark";
@@ -36,6 +37,14 @@ export default function Navbar() {
       setNotificationStatus("unsupported");
     } else {
       setNotificationStatus(Notification.permission as any);
+      // Check if already subscribed to push
+      if (Notification.permission === "granted") {
+        navigator.serviceWorker.ready.then(reg => {
+          reg.pushManager.getSubscription().then(sub => {
+            setIsSubscribed(!!sub);
+          });
+        });
+      }
     }
   }, []);
 
@@ -50,29 +59,43 @@ export default function Navbar() {
     setIsDark(!isDark);
   };
 
-  const subscribeToNotifications = async () => {
+  const handleNotificationToggle = async () => {
     if (!user || isSubscribing) return;
     setIsSubscribing(true);
 
     try {
-      const permission = await Notification.requestPermission();
-      setNotificationStatus(permission);
-      
-      if (permission !== "granted") {
-        setIsSubscribing(false);
-        return;
-      }
-
       const registration = await navigator.serviceWorker.ready;
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-      });
+      
+      if (isSubscribed) {
+        // Unsubscribe
+        const subscription = await registration.pushManager.getSubscription();
+        if (subscription) {
+          await deleteSubscription(user.uid, subscription.endpoint);
+          await subscription.unsubscribe();
+        }
+        setIsSubscribed(false);
+        alert("20時の通知リマインダーをオフにしました。");
+      } else {
+        // Subscribe
+        const permission = await Notification.requestPermission();
+        setNotificationStatus(permission);
+        
+        if (permission !== "granted") {
+          setIsSubscribing(false);
+          return;
+        }
 
-      await saveSubscription(user.uid, subscription.toJSON());
-      alert("20時の通知リマインダーをオンにしました！");
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        });
+
+        await saveSubscription(user.uid, subscription.toJSON());
+        setIsSubscribed(true);
+        alert("20時の通知リマインダーをオンにしました！");
+      }
     } catch (error) {
-      console.error("Failed to subscribe:", error);
+      console.error("Failed to toggle notifications:", error);
       alert("通知の設定に失敗しました。ブラウザの設定を確認してください。");
     } finally {
       setIsSubscribing(false);
@@ -97,18 +120,18 @@ export default function Navbar() {
         <div className="flex items-center gap-2">
           {user && notificationStatus !== "unsupported" && (
             <button
-              onClick={subscribeToNotifications}
-              disabled={isSubscribing || notificationStatus === "granted"}
+              onClick={handleNotificationToggle}
+              disabled={isSubscribing}
               className={`p-2.5 rounded-xl transition-all duration-200 active:scale-90 ${
-                notificationStatus === "granted" 
+                isSubscribed 
                 ? "text-primary bg-primary/10" 
                 : "text-muted hover:bg-surface-hover"
               }`}
-              title={notificationStatus === "granted" ? "通知オン" : "20時に通知を送る"}
+              title={isSubscribed ? "通知オン（クリックでオフ）" : "20時に通知を送る"}
             >
               {isSubscribing ? (
                 <Loader2 className="w-[18px] h-[18px] animate-spin" />
-              ) : notificationStatus === "granted" ? (
+              ) : isSubscribed ? (
                 <Bell className="w-[18px] h-[18px]" />
               ) : (
                 <BellOff className="w-[18px] h-[18px]" />

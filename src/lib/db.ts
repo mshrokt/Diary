@@ -94,3 +94,15 @@ export const getSubscriptions = async () => {
   const querySnapshot = await getDocs(collection(db, "subscriptions"));
   return querySnapshot.docs.map(doc => doc.data());
 };
+
+export const deleteSubscription = async (userId: string, endpoint: string) => {
+  const q = query(
+    collection(db, "subscriptions"),
+    where("userId", "==", userId),
+    where("endpoint", "==", endpoint)
+  );
+  const snapshot = await getDocs(q);
+  snapshot.forEach(async (document) => {
+    await deleteDoc(doc(db, "subscriptions", document.id));
+  });
+};
