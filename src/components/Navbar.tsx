@@ -29,7 +29,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="w-full glass border-b border-border sticky top-0 z-50 pt-[calc(8px+env(safe-area-inset-top))]">
+    <nav className="w-full glass border-b border-border sticky top-0 z-50 pt-[calc(4px+env(safe-area-inset-top))]">
       <div className="max-w-3xl mx-auto px-5 h-16 flex items-center justify-between">
         <Link
           href="/"
