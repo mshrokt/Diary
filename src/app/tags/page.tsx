@@ -169,17 +169,20 @@ export default function TagManagement() {
                     ) : (
                       <>
                         <div className="flex-1 flex items-center gap-3">
-                          <div className="p-2 bg-primary/5 rounded-lg text-primary">
-                            <Tag className="w-4 h-4" />
-                          </div>
-                          <div>
-                            <div className="text-sm font-semibold flex items-center gap-2">
+                          <Link 
+                            href={`/?tag=${encodeURIComponent(tag.name)}`}
+                            className="flex-1 flex items-center gap-3 group/item"
+                          >
+                            <div className="p-2 bg-primary/5 rounded-lg text-primary group-hover/item:bg-primary group-hover/item:text-white transition-colors">
+                              <Tag className="w-4 h-4" />
+                            </div>
+                            <div className="text-sm font-semibold flex items-center gap-2 group-hover/item:text-primary transition-colors">
                                 {tag.name}
                                 <span className="text-[10px] font-medium text-muted bg-surface border border-border px-1.5 py-0.5 rounded-md">
                                     {tag.count}
                                 </span>
                             </div>
-                          </div>
+                          </Link>
                         </div>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button

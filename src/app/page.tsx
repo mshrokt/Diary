@@ -4,7 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { getDiaries } from "@/lib/db";
 import { Diary } from "@/types/diary";
 import { useEffect, useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Calendar from "@/components/Calendar";
 import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, Search, Tag, X, History } from "lucide-react";
@@ -21,6 +21,14 @@ export default function Home() {
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
 
   const todayHint = useMemo(() => getDailyHint(new Date()), []);
+  const searchParams = useSearchParams();
+  const initialTag = searchParams.get("tag");
+
+  useEffect(() => {
+    if (initialTag) {
+      setSelectedTag(initialTag);
+    }
+  }, [initialTag]);
 
   useEffect(() => {
     if (user) {
