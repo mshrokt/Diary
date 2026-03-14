@@ -5,10 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { createDiary, getDiaries, updateDiary, deleteDiary } from "@/lib/db";
 import { Diary } from "@/types/diary";
-import { storage } from "@/lib/firebase";
-import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
-import { compressImage } from "@/lib/imageOptimization";
-import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight, Image as ImageIcon, X } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
@@ -26,11 +23,6 @@ export default function EditDiary() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null); // For single image legacy (not used for new)
-  const [imageUrls, setImageUrls] = useState<string[]>([]);
-  const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -51,7 +43,6 @@ export default function EditDiary() {
             setContent(found.content);
             setDate(found.date);
             setTagsInput(found.tags?.join(" ") || "");
-            setImageUrls(found.imageUrls || (found.imageUrl ? [found.imageUrl] : []));
           } else {
             router.push("/");
             return;
@@ -86,104 +77,23 @@ export default function EditDiary() {
   const handleSave = async () => {
     if (!user || !content.trim()) return;
     setSaving(true);
-    setUploadProgress(null);
     
     const tags = Array.from(new Set(tagsInput.split(/\s+/).filter(t => t.trim() !== "")));
 
     try {
-      let finalImageUrls = [...imageUrls];
-
-      if (imageFiles.length > 0) {
-        for (let i = 0; i < imageFiles.length; i++) {
-          const file = imageFiles[i];
-          
-          // Try to compress, fallback to original if compression fails
-          let uploadBlob: Blob = file;
-          try {
-            uploadBlob = await compressImage(file);
-          } catch (compressError) {
-            console.warn("Compression failed, using original file:", compressError);
-            // Use the original file as fallback
-            uploadBlob = file;
-          }
-          
-          const fileRef = ref(storage, `diaries/${user.uid}/${Date.now()}_${file.name}`);
-          const uploadTask = uploadBytesResumable(fileRef, uploadBlob);
-
-          const downloadURL = await new Promise<string>((resolve, reject) => {
-            uploadTask.on(
-              "state_changed",
-              (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                setUploadProgress(Math.round(progress));
-              },
-              (error) => {
-                console.error("Upload error:", error);
-                reject(error);
-              },
-              async () => {
-                const url = await getDownloadURL(uploadTask.snapshot.ref);
-                resolve(url);
-              }
-            );
-          });
-          finalImageUrls.push(downloadURL);
-        }
-      }
-
       if (isNew) {
-        await createDiary(user.uid, content, date, tags, finalImageUrls);
+        await createDiary(user.uid, content, date, tags);
       } else {
-        await updateDiary(idStr, content, date, tags, finalImageUrls);
+        await updateDiary(idStr, content, date, tags);
       }
       router.push("/");
       router.refresh();
     } catch (error: any) {
       console.error("Error saving diary:", error);
-      const code = error?.code || "";
-      const msg = error?.message || "";
-      let errorMsg = `保存に失敗しました。\n\nエラー詳細: ${code || msg || "不明"}`;
-      if (code === 'storage/unauthorized') {
-        errorMsg += "\n\n→ FirebaseのStorage Rulesでアップロードが許可されていません。";
-      } else if (code === 'storage/canceled') {
-        errorMsg += "\n\n→ アップロードがキャンセルされました。";
-      }
-      alert(errorMsg);
+      alert(`保存に失敗しました。(${error.message || '接続エラー'})`);
     } finally {
       setSaving(false);
-      setUploadProgress(null);
     }
-  };
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const MAX_IMAGES = 5;
-    
-    if (imageUrls.length + imageFiles.length + files.length > MAX_IMAGES) {
-      alert(`画像は最大${MAX_IMAGES}枚までです。`);
-      return;
-    }
-
-    if (files.length > 0) {
-      setImageFiles(prev => [...prev, ...files]);
-      
-      files.forEach(file => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setImagePreviews(prev => [...prev, reader.result as string]);
-        };
-        reader.readAsDataURL(file);
-      });
-    }
-  };
-
-  const removeExistingImage = (index: number) => {
-    setImageUrls(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const removeNewImage = (index: number) => {
-    setImageFiles(prev => prev.filter((_, i) => i !== index));
-    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDelete = async () => {
@@ -246,7 +156,7 @@ export default function EditDiary() {
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>{uploadProgress !== null ? `${uploadProgress}%` : "保存中..."}</span>
+                  <span>保存中...</span>
                 </>
               ) : (
                 <>
@@ -283,37 +193,6 @@ export default function EditDiary() {
             )}
           </div>
 
-          {/* Image gallery preview */}
-          {(imageUrls.length > 0 || imagePreviews.length > 0) && (
-            <div className="mx-6 mt-4 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {/* Existing images */}
-              {imageUrls.map((url, idx) => (
-                <div key={`existing-${idx}`} className="relative shrink-0 w-32 aspect-square rounded-xl overflow-hidden border border-border group">
-                  <img src={url} alt="" className="w-full h-full object-cover" />
-                  <button 
-                    onClick={() => removeExistingImage(idx)}
-                    className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-              {/* Newly selected images */}
-              {imagePreviews.map((preview, idx) => (
-                <div key={`new-${idx}`} className="relative shrink-0 w-32 aspect-square rounded-xl overflow-hidden border border-primary/30 group">
-                  <img src={preview} alt="" className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-primary/10 pointer-events-none" />
-                  <button 
-                    onClick={() => removeNewImage(idx)}
-                    className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
           {/* Text area */}
           <div className="flex-1 flex flex-col min-h-0 p-6">
             <textarea
@@ -339,18 +218,6 @@ export default function EditDiary() {
                   className="w-full bg-transparent outline-none text-sm text-foreground placeholder-muted/40"
                 />
               </div>
-              
-              <label className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-medium text-muted hover:text-primary hover:border-primary/40 transition-all cursor-pointer">
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span>画像を追加</span>
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  multiple
-                  onChange={handleImageChange}
-                  className="hidden" 
-                />
-              </label>
             </div>
           </div>
 
@@ -371,16 +238,6 @@ export default function EditDiary() {
             </h3>
             <div className="group block bg-card/40 backdrop-blur-sm border border-primary/20 rounded-2xl hover:border-primary/40 transition-all card-hover">
                 <div className="flex gap-4 p-4">
-                  {((lastYearDiary.imageUrls && lastYearDiary.imageUrls.length > 0) || lastYearDiary.imageUrl) && (
-                    <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-border/50 relative">
-                      <img src={lastYearDiary.imageUrls?.[0] || lastYearDiary.imageUrl} alt="Last year" className="w-full h-full object-cover" />
-                      {(lastYearDiary.imageUrls?.length || 1) > 1 && (
-                        <div className="absolute bottom-1 right-1 bg-black/50 text-white text-[8px] px-1 rounded-md backdrop-blur-sm font-bold">
-                          {(lastYearDiary.imageUrls?.length || 1)}枚
-                        </div>
-                      )}
-                    </div>
-                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-widest mb-1">
                       <History className="w-3 h-3" />

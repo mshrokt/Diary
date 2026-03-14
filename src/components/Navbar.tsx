@@ -2,18 +2,40 @@
 
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
-import { LogOut, BookOpen, Sun, Moon } from "lucide-react";
+import { LogOut, BookOpen, Sun, Moon, Bell, BellOff, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { saveSubscription } from "@/lib/db";
+
+const VAPID_PUBLIC_KEY = "BNBrxTJwNdHvA2Qmf0VvCt_Q0rF9jSm6XoN6SzptCwRpkcb60l5U85iknCX82Bl_L1SvpN-KjGEaxv4MUvXRjWo";
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
 
 export default function Navbar() {
   const { user, logout } = useAuth();
   const [isDark, setIsDark] = useState(false);
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const [notificationStatus, setNotificationStatus] = useState<"default" | "granted" | "denied" | "unsupported">("default");
 
   useEffect(() => {
     const isDarkStored = localStorage.getItem("theme") === "dark";
     if (isDarkStored) {
       document.documentElement.classList.add("dark");
       setIsDark(true);
+    }
+
+    if (!("Notification" in window)) {
+      setNotificationStatus("unsupported");
+    } else {
+      setNotificationStatus(Notification.permission as any);
     }
   }, []);
 
@@ -26,6 +48,35 @@ export default function Navbar() {
       localStorage.setItem("theme", "dark");
     }
     setIsDark(!isDark);
+  };
+
+  const subscribeToNotifications = async () => {
+    if (!user || isSubscribing) return;
+    setIsSubscribing(true);
+
+    try {
+      const permission = await Notification.requestPermission();
+      setNotificationStatus(permission);
+      
+      if (permission !== "granted") {
+        setIsSubscribing(false);
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+
+      await saveSubscription(user.uid, subscription.toJSON());
+      alert("20時の通知リマインダーをオンにしました！");
+    } catch (error) {
+      console.error("Failed to subscribe:", error);
+      alert("通知の設定に失敗しました。ブラウザの設定を確認してください。");
+    } finally {
+      setIsSubscribing(false);
+    }
   };
 
   return (
@@ -44,6 +95,26 @@ export default function Navbar() {
         </Link>
 
         <div className="flex items-center gap-2">
+          {user && notificationStatus !== "unsupported" && (
+            <button
+              onClick={subscribeToNotifications}
+              disabled={isSubscribing || notificationStatus === "granted"}
+              className={`p-2.5 rounded-xl transition-all duration-200 active:scale-90 ${
+                notificationStatus === "granted" 
+                ? "text-primary bg-primary/10" 
+                : "text-muted hover:bg-surface-hover"
+              }`}
+              title={notificationStatus === "granted" ? "通知オン" : "20時に通知を送る"}
+            >
+              {isSubscribing ? (
+                <Loader2 className="w-[18px] h-[18px] animate-spin" />
+              ) : notificationStatus === "granted" ? (
+                <Bell className="w-[18px] h-[18px]" />
+              ) : (
+                <BellOff className="w-[18px] h-[18px]" />
+              )}
+            </button>
+          )}
           <button
             onClick={toggleTheme}
             className="p-2.5 rounded-xl hover:bg-surface-hover transition-all duration-200 active:scale-90"

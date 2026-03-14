@@ -7,7 +7,7 @@ import { useEffect, useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Calendar from "@/components/Calendar";
-import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, Search, Tag, X, History, Image as ImageIcon } from "lucide-react";
+import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, Search, Tag, X, History } from "lucide-react";
 import Link from "next/link";
 
 import { getDailyHint } from "@/data/dailyHints";
@@ -42,12 +42,12 @@ export default function Home() {
 
   const { filteredDiaries, diaryData, allTags, lastYearDiary, topTags } = useMemo<{
     filteredDiaries: Diary[];
-    diaryData: Map<string, { intensity: number; id: string; preview: string; hasImage: boolean; imageUrl?: string }>;
+    diaryData: Map<string, { intensity: number; id: string; preview: string }>;
     allTags: string[];
     lastYearDiary: Diary | null;
     topTags: { name: string; count: number }[];
   }>(() => {
-    const dataMap = new Map<string, { intensity: number; id: string; preview: string; hasImage: boolean; imageUrl?: string }>();
+    const dataMap = new Map<string, { intensity: number; id: string; preview: string }>();
     const tagSet = new Set<string>();
     const tagCounts: Record<string, number> = {};
     
@@ -88,7 +88,7 @@ export default function Home() {
       if (isLastYearToday) lyFound = d;
 
       const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-      const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "", hasImage: false, imageUrl: undefined };
+      const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "" };
       
       const contentPreview = d.content.length > 40 ? d.content.substring(0, 40) + "..." : d.content;
       
@@ -96,8 +96,6 @@ export default function Home() {
         intensity: current.intensity + d.content.length,
         id: d.id!, // Last entry id for that date is used for navigation
         preview: current.preview ? current.preview + "\n---\n" + contentPreview : contentPreview,
-        hasImage: current.hasImage || !!d.imageUrl,
-        imageUrl: current.imageUrl || d.imageUrl
       });
 
       // Filter logic
@@ -442,15 +440,7 @@ export default function Home() {
                                         <span className="text-base font-bold text-primary leading-none">{dateInfo.day}</span>
                                         <span className="text-[9px] font-medium text-muted mt-0.5">{dateInfo.month}月</span>
                                     </div>
-                                    {((diary.imageUrls && diary.imageUrls.length > 0) || diary.imageUrl) && (
-                                        <div className="absolute -bottom-1 -right-1 bg-white dark:bg-card px-1.5 py-0.5 rounded-lg border border-border shadow-sm flex items-center gap-1">
-                                            <ImageIcon className="w-2.5 h-2.5 text-primary" />
-                                            {(diary.imageUrls?.length || 1) > 1 && (
-                                              <span className="text-[8px] font-bold text-primary">{(diary.imageUrls?.length || 1)}</span>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
+                                    </div>
 
                                 {/* Content preview */}
                                 <div className="flex-1 min-w-0">

@@ -35,18 +35,15 @@ export const createDiary = async (
   userId: string,
   content: string,
   date: number,
-  tags: string[] = [],
-  imageUrls: string[] = []
+  tags: string[] = []
 ): Promise<string> => {
   const newDiary = {
     userId,
     content,
     date,
     tags,
-    imageUrls,
-    // Add imageUrl for legacy field support (optional but helpful for existing list views)
-    imageUrl: imageUrls.length > 0 ? imageUrls[0] : null,
     createdAt: Date.now(),
+    updatedAt: Date.now(),
   };
   const docRef = await addDoc(collection(db, DIARIES_COLLECTION), newDiary);
   return docRef.id;
@@ -56,16 +53,14 @@ export const updateDiary = async (
   id: string,
   content: string,
   date: number,
-  tags: string[] = [],
-  imageUrls: string[] = []
+  tags: string[] = []
 ): Promise<void> => {
   const diaryRef = doc(db, DIARIES_COLLECTION, id);
   const updateData: any = {
     content,
     date,
     tags,
-    imageUrls,
-    imageUrl: imageUrls.length > 0 ? imageUrls[0] : null,
+    updatedAt: Date.now(),
   };
   await updateDoc(diaryRef, updateData);
 };
@@ -73,4 +68,29 @@ export const updateDiary = async (
 export const deleteDiary = async (id: string): Promise<void> => {
   const diaryRef = doc(db, DIARIES_COLLECTION, id);
   await deleteDoc(diaryRef);
+};
+
+// --- Push Notifications ---
+
+export const saveSubscription = async (userId: string, subscription: any) => {
+  const q = query(
+    collection(db, "subscriptions"),
+    where("userId", "==", userId),
+    where("endpoint", "==", subscription.endpoint)
+  );
+  const snapshot = await getDocs(q);
+
+  if (snapshot.empty) {
+    await addDoc(collection(db, "subscriptions"), {
+      userId,
+      subscription, // Full browser subscription object
+      endpoint: subscription.endpoint,
+      createdAt: Date.now(),
+    });
+  }
+};
+
+export const getSubscriptions = async () => {
+  const querySnapshot = await getDocs(collection(db, "subscriptions"));
+  return querySnapshot.docs.map(doc => doc.data());
 };
