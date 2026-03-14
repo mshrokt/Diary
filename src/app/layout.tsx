@@ -9,6 +9,11 @@ export const metadata: Metadata = {
   title: "My Diary | あなたの日記帳",
   description: "いつでも、どこでも、あなたの想いを記録。マルチデバイス対応の日記アプリ。",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "My Diary",
+  },
 };
 
 export const viewport: Viewport = {

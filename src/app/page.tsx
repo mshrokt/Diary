@@ -204,7 +204,7 @@ export default function Home() {
       <main className="flex-1 max-w-3xl mx-auto w-full px-5 pb-12">
         {/* Subtle Header / Today's Hint */}
         {!searchQuery && !selectedTag ? (
-          <div className="mb-8 mt-6 animate-fade-in">
+          <div className="mb-4 mt-4 animate-fade-in">
             <div className="p-6 group">
               <div className="flex flex-col gap-4">
                 <div className="flex items-center justify-between">
@@ -247,7 +247,7 @@ export default function Home() {
             </div>
           </div>
         ) : (
-            <div className="mb-6 mt-6 animate-fade-in">
+            <div className="mb-4 mt-4 animate-fade-in">
                <h1 className="text-2xl font-bold text-foreground mb-1">
                 検索・フィルタ結果
               </h1>
