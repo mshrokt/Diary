@@ -204,9 +204,9 @@ export default function Home() {
       <main className="flex-1 max-w-3xl mx-auto w-full px-5 pb-12">
         {/* Subtle Header / Today's Hint */}
         {!searchQuery && !selectedTag ? (
-          <div className="mb-4 mt-4 animate-fade-in">
-            <div className="p-6 group">
-              <div className="flex flex-col gap-4">
+          <div className="mb-0 mt-3 animate-fade-in">
+            <div className="px-6 pt-4 pb-2 group">
+              <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -230,7 +230,7 @@ export default function Home() {
                 
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1">
-                    <h1 className="text-lg font-bold text-foreground leading-tight mb-2">
+                    <h1 className="text-lg font-bold text-foreground leading-tight">
                       {todayHint.question}
                     </h1>
 
