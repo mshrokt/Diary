@@ -35,6 +35,11 @@ export default function RootLayout({
   return (
     <html lang="ja">
       <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="My Diary" />
+        <link rel="apple-touch-icon" href="/icon-192x192.png" />
+        <link rel="manifest" href="/manifest.json" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -42,10 +47,10 @@ export default function RootLayout({
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/sw.js').then(
                     function(registration) {
-                      console.log('Service Worker registration successful with scope: ', registration.scope);
+                      console.log('SW registered');
                     },
                     function(err) {
-                      console.log('Service Worker registration failed: ', err);
+                      console.log('SW registration failed: ', err);
                     }
                   );
                 });
