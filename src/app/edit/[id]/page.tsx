@@ -23,6 +23,8 @@ export default function EditDiary() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [allTags, setAllTags] = useState<string[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -64,6 +66,11 @@ export default function EditDiary() {
           );
         });
         setLastYearDiary(lyDiary || null);
+
+        // 3. Collect all user tags for suggestions
+        const tags = new Set<string>();
+        allDiaries.forEach(d => d.tags?.forEach(t => tags.add(t)));
+        setAllTags(Array.from(tags).sort());
 
       } catch (error) {
         console.error("Error fetching diaries:", error);
@@ -206,17 +213,62 @@ export default function EditDiary() {
           </div>
 
           {/* Tags input */}
-          <div className="px-6 py-3 border-t border-border bg-surface/30">
+          <div className="px-6 py-3 border-t border-border bg-surface/30 relative">
             <div className="flex items-center gap-4">
-               <div className="flex items-center gap-3 flex-1">
+               <div className="flex items-center gap-3 flex-1 relative">
                 <Tag className="w-4 h-4 text-muted shrink-0" />
                 <input
                   type="text"
                   value={tagsInput}
-                  onChange={(e) => setTagsInput(e.target.value)}
+                  onChange={(e) => {
+                      setTagsInput(e.target.value);
+                      setShowSuggestions(true);
+                  }}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                  onFocus={() => setShowSuggestions(true)}
                   placeholder="タグを追加 (スペース区切り)"
                   className="w-full bg-transparent outline-none text-sm text-foreground placeholder-muted/40"
                 />
+                
+                {/* Suggestions Dropdown */}
+                {showSuggestions && (
+                    (() => {
+                        const currentInput = tagsInput.split(/\s+/).pop()?.toLowerCase() || "";
+                        if (!currentInput) return null;
+                        
+                        const suggestions = allTags.filter(t => 
+                            t.toLowerCase().includes(currentInput) && 
+                            !tagsInput.toLowerCase().split(/\s+/).includes(t.toLowerCase())
+                        ).slice(0, 5);
+
+                        if (suggestions.length === 0) return null;
+
+                        return (
+                            <div className="absolute bottom-full left-0 mb-2 w-full max-w-[200px] bg-card border border-border rounded-xl shadow-xl overflow-hidden z-20 animate-slide-up">
+                                <div className="p-2 border-b border-border bg-surface/50">
+                                    <span className="text-[10px] font-bold text-muted uppercase tracking-tighter">候補</span>
+                                </div>
+                                <div className="max-h-40 overflow-y-auto">
+                                    {suggestions.map(s => (
+                                        <button
+                                            key={s}
+                                            onClick={() => {
+                                                const parts = tagsInput.split(/\s+/);
+                                                parts.pop();
+                                                setTagsInput([...parts, s].join(" ") + " ");
+                                                setShowSuggestions(false);
+                                            }}
+                                            className="w-full text-left px-3 py-2 text-sm hover:bg-primary/10 hover:text-primary transition-colors flex items-center gap-2"
+                                        >
+                                            <Tag className="w-3 h-3" />
+                                            {s}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })()
+                )}
               </div>
             </div>
           </div>

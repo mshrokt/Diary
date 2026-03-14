@@ -40,12 +40,13 @@ export default function Home() {
     }
   }, [user]);
 
-  const { filteredDiaries, diaryData, allTags, lastYearDiary, topTags } = useMemo<{
+  const { filteredDiaries, diaryData, allTags, lastYearDiary, topTags, actualTags } = useMemo<{
     filteredDiaries: Diary[];
     diaryData: Map<string, { intensity: number; id: string; preview: string }>;
     allTags: string[];
     lastYearDiary: Diary | null;
     topTags: { name: string; count: number }[];
+    actualTags: string[];
   }>(() => {
     const dataMap = new Map<string, { intensity: number; id: string; preview: string }>();
     const tagSet = new Set<string>();
@@ -115,7 +116,8 @@ export default function Home() {
       diaryData: dataMap,
       allTags: Array.from(tagSet).sort(),
       lastYearDiary: lyFound,
-      topTags: sortedTags
+      topTags: sortedTags,
+      actualTags: Array.from(tagSet).sort()
     };
   }, [diaries, searchQuery, selectedTag]);
 
@@ -298,24 +300,43 @@ export default function Home() {
                 </div>
 
                 {/* Tag Chips */}
-                {allTags.length > 0 && (
-                    <div className="flex flex-wrap gap-2 items-center">
-                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider mr-1">Tags:</span>
-                        {allTags.map(tag => (
-                            <button
-                                key={tag}
-                                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                                className={`
-                                    flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all
-                                    ${selectedTag === tag 
-                                        ? "bg-primary text-white shadow-sm shadow-primary/30" 
-                                        : "bg-surface border border-border text-muted hover:border-primary/40 hover:text-primary"}
-                                `}
+                {actualTags.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Top Tags</span>
+                            <Link 
+                                href="/tags"
+                                className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
                             >
-                                <Tag className="w-3 h-3" />
-                                {tag}
-                            </button>
-                        ))}
+                                <Tag className="w-2.5 h-2.5" />
+                                すべて管理
+                            </Link>
+                        </div>
+                        <div className="flex flex-wrap gap-2 items-center">
+                            {actualTags.slice(0, 8).map(tag => (
+                                <button
+                                    key={tag}
+                                    onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                                    className={`
+                                        flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all
+                                        ${selectedTag === tag 
+                                            ? "bg-primary text-white shadow-sm shadow-primary/30" 
+                                            : "bg-surface border border-border text-muted hover:border-primary/40 hover:text-primary"}
+                                    `}
+                                >
+                                    <Tag className="w-3 h-3" />
+                                    {tag}
+                                </button>
+                            ))}
+                            {actualTags.length > 8 && (
+                                <Link 
+                                    href="/tags"
+                                    className="px-3 py-1.5 rounded-xl text-xs font-medium border border-dashed border-border text-muted hover:border-primary/40 hover:text-primary transition-all"
+                                >
+                                    +{actualTags.length - 8} more...
+                                </Link>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
