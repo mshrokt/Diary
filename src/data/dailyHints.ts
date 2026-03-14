@@ -37,7 +37,7 @@ export const getDailyHint = (date: Date): DailyHint => {
   if (hints[key]) {
     return {
       target: hints[key].target,
-      question: `今日は${hints[key].target}です。${hints[key].question}`
+      question: hints[key].question
     };
   }
 
@@ -46,6 +46,6 @@ export const getDailyHint = (date: Date): DailyHint => {
   const index = seed % generalQuestions.length;
   return {
     target: "", // 「今日という日」を消去するため空にする
-    question: `今日は${date.getMonth() + 1}月${date.getDate()}日です。${generalQuestions[index]}`
+    question: generalQuestions[index]
   };
 };
