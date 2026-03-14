@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     title: "My Diary",
   },
   icons: {
-    apple: "/icon-192x192.png",
+    apple: "/apple-touch-icon.png",
   },
 };
 
