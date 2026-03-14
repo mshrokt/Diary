@@ -204,8 +204,8 @@ export default function Home() {
       <main className="flex-1 max-w-3xl mx-auto w-full px-5 pb-12">
         {/* Subtle Header / Today's Hint */}
         {!searchQuery && !selectedTag ? (
-          <div className="mb-0 mt-3 animate-fade-in">
-            <div className="px-6 pt-4 pb-2 group">
+          <div className="mb-3 mt-4 animate-fade-in">
+            <div className="px-6 pt-4 pb-3 group">
               <div className="flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
