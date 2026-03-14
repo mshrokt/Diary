@@ -131,13 +131,13 @@ export default function EditDiary() {
       router.refresh();
     } catch (error: any) {
       console.error("Error saving diary:", error);
-      let errorMsg = "保存に失敗しました。";
+      let errorMsg = `保存に失敗しました。(${error.code || error.message || '不明なエラー'})`;
       if (error.code === 'storage/unauthorized') {
-        errorMsg += "画像のアップロード権限がありません。FirebaseのStorageルールを確認してください。";
+        errorMsg += "\n画像のアップロード権限がありません。FirebaseのStorageルールを確認してください。";
       } else if (error.code === 'storage/canceled') {
-        errorMsg += "アップロードがキャンセルされました。";
+        errorMsg += "\nアップロードがキャンセルされました。";
       } else {
-        errorMsg += "もう一度お試しください。";
+        errorMsg += "\nインターネット接続やブラウザの設定を確認してください。";
       }
       alert(errorMsg);
     } finally {

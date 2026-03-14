@@ -14,7 +14,6 @@ export const compressImage = async (
 ): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.readAsDataURL(file);
     reader.onload = (event) => {
       const img = new Image();
       img.onload = () => {
@@ -65,6 +64,10 @@ export const compressImage = async (
       img.onerror = (err) => reject(err);
       img.src = event.target?.result as string;
     };
-    reader.onerror = (err) => reject(err);
+    reader.onerror = (err) => {
+      console.error("FileReader error:", err);
+      reject(err);
+    };
+    reader.readAsDataURL(file);
   });
 };
