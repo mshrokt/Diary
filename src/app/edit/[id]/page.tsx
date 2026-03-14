@@ -7,6 +7,7 @@ import { createDiary, getDiaries, updateDiary, deleteDiary } from "@/lib/db";
 import { Diary } from "@/types/diary";
 import { storage } from "@/lib/firebase";
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
+import { compressImage } from "@/lib/imageOptimization";
 import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight, Image as ImageIcon, X } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -94,8 +95,11 @@ export default function EditDiary() {
 
       if (imageFiles.length > 0) {
         for (const file of imageFiles) {
+          // Compress image before upload
+          const compressedBlob = await compressImage(file);
+          
           const fileRef = ref(storage, `diaries/${user.uid}/${Date.now()}_${file.name}`);
-          const uploadTask = uploadBytesResumable(fileRef, file);
+          const uploadTask = uploadBytesResumable(fileRef, compressedBlob);
 
           const downloadURL = await new Promise<string>((resolve, reject) => {
             uploadTask.on(
