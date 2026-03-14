@@ -13,6 +13,15 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
+  // Skip cross-origin requests (like Firebase Storage/Firestore)
+  // and non-GET requests (like file uploads)
+  if (
+    !event.request.url.startsWith(self.location.origin) ||
+    event.request.method !== "GET"
+  ) {
+    return;
+  }
+
   event.respondWith(
     fetch(event.request).catch(() => caches.match(event.request))
   );
