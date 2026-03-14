@@ -36,14 +36,16 @@ export const createDiary = async (
   content: string,
   date: number,
   tags: string[] = [],
-  imageUrl: string | null = null
+  imageUrls: string[] = []
 ): Promise<string> => {
   const newDiary = {
     userId,
     content,
     date,
     tags,
-    imageUrl,
+    imageUrls,
+    // Add imageUrl for legacy field support (optional but helpful for existing list views)
+    imageUrl: imageUrls.length > 0 ? imageUrls[0] : null,
     createdAt: Date.now(),
   };
   const docRef = await addDoc(collection(db, DIARIES_COLLECTION), newDiary);
@@ -55,17 +57,16 @@ export const updateDiary = async (
   content: string,
   date: number,
   tags: string[] = [],
-  imageUrl: string | null = null
+  imageUrls: string[] = []
 ): Promise<void> => {
   const diaryRef = doc(db, DIARIES_COLLECTION, id);
   const updateData: any = {
     content,
     date,
     tags,
+    imageUrls,
+    imageUrl: imageUrls.length > 0 ? imageUrls[0] : null,
   };
-  if (imageUrl !== undefined) {
-    updateData.imageUrl = imageUrl;
-  }
   await updateDoc(diaryRef, updateData);
 };
 

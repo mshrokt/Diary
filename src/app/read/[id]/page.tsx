@@ -141,14 +141,23 @@ export default function ReadDiary() {
                 </Link>
               </div>
 
-              {/* Image in reader */}
-              {diary.imageUrl && (
-                <div className="mb-6 rounded-2xl overflow-hidden border border-border shadow-sm">
-                  <img 
-                    src={diary.imageUrl} 
-                    alt="Diary photo" 
-                    className="w-full h-auto object-cover max-h-[500px]" 
-                  />
+              {/* Images in reader */}
+              {((diary.imageUrls && diary.imageUrls.length > 0) || diary.imageUrl) && (
+                <div className={`mb-6 grid gap-3 ${
+                  (diary.imageUrls?.length || 1) > 1 ? "grid-cols-2" : "grid-cols-1"
+                }`}>
+                  {(diary.imageUrls || [diary.imageUrl]).map((url, idx) => url && (
+                    <div 
+                      key={idx} 
+                      className={`rounded-2xl overflow-hidden border border-border shadow-sm ${(diary.imageUrls?.length || 1) === 3 && idx === 0 ? "col-span-2" : ""}`}
+                    >
+                      <img 
+                        src={url} 
+                        alt={`Photo ${idx + 1}`} 
+                        className="w-full h-auto object-cover max-h-[500px] hover:scale-105 transition-transform duration-500" 
+                      />
+                    </div>
+                  ))}
                 </div>
               )}
 

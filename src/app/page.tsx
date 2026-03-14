@@ -442,9 +442,12 @@ export default function Home() {
                                         <span className="text-base font-bold text-primary leading-none">{dateInfo.day}</span>
                                         <span className="text-[9px] font-medium text-muted mt-0.5">{dateInfo.month}月</span>
                                     </div>
-                                    {diary.imageUrl && (
-                                        <div className="absolute -bottom-1 -right-1 bg-white dark:bg-card p-1 rounded-lg border border-border shadow-sm">
+                                    {((diary.imageUrls && diary.imageUrls.length > 0) || diary.imageUrl) && (
+                                        <div className="absolute -bottom-1 -right-1 bg-white dark:bg-card px-1.5 py-0.5 rounded-lg border border-border shadow-sm flex items-center gap-1">
                                             <ImageIcon className="w-2.5 h-2.5 text-primary" />
+                                            {(diary.imageUrls?.length || 1) > 1 && (
+                                              <span className="text-[8px] font-bold text-primary">{(diary.imageUrls?.length || 1)}</span>
+                                            )}
                                         </div>
                                     )}
                                 </div>

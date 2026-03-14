@@ -6,7 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { createDiary, getDiaries, updateDiary, deleteDiary } from "@/lib/db";
 import { Diary } from "@/types/diary";
 import { storage } from "@/lib/firebase";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight, Image as ImageIcon, X } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -25,9 +25,11 @@ export default function EditDiary() {
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
-  const [imageFile, setImageFile] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState<string | null>(null); // For single image legacy (not used for new)
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageFiles, setImageFiles] = useState<File[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -48,7 +50,7 @@ export default function EditDiary() {
             setContent(found.content);
             setDate(found.date);
             setTagsInput(found.tags?.join(" ") || "");
-            setImageUrl(found.imageUrl || null);
+            setImageUrls(found.imageUrls || (found.imageUrl ? [found.imageUrl] : []));
           } else {
             router.push("/");
             return;
@@ -83,45 +85,92 @@ export default function EditDiary() {
   const handleSave = async () => {
     if (!user || !content.trim()) return;
     setSaving(true);
+    setUploadProgress(null);
     
-    // Parse tags: split by space, remove duplicates, filter empty
     const tags = Array.from(new Set(tagsInput.split(/\s+/).filter(t => t.trim() !== "")));
 
     try {
-      let finalImageUrl = imageUrl;
+      let finalImageUrls = [...imageUrls];
 
-      // 1. Upload image if selected
-      if (imageFile) {
-        const fileRef = ref(storage, `diaries/${user.uid}/${Date.now()}_${imageFile.name}`);
-        const snapshot = await uploadBytes(fileRef, imageFile);
-        finalImageUrl = await getDownloadURL(snapshot.ref);
+      if (imageFiles.length > 0) {
+        for (const file of imageFiles) {
+          const fileRef = ref(storage, `diaries/${user.uid}/${Date.now()}_${file.name}`);
+          const uploadTask = uploadBytesResumable(fileRef, file);
+
+          const downloadURL = await new Promise<string>((resolve, reject) => {
+            uploadTask.on(
+              "state_changed",
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+                setUploadProgress(Math.round(progress));
+              },
+              (error) => {
+                console.error("Upload error:", error);
+                reject(error);
+              },
+              async () => {
+                const url = await getDownloadURL(uploadTask.snapshot.ref);
+                resolve(url);
+              }
+            );
+          });
+          finalImageUrls.push(downloadURL);
+        }
       }
 
       if (isNew) {
-        await createDiary(user.uid, content, date, tags, finalImageUrl);
+        await createDiary(user.uid, content, date, tags, finalImageUrls);
       } else {
-        await updateDiary(idStr, content, date, tags, finalImageUrl);
+        await updateDiary(idStr, content, date, tags, finalImageUrls);
       }
       router.push("/");
       router.refresh();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving diary:", error);
-      alert("保存に失敗しました。もう一度お試しください。");
+      let errorMsg = "保存に失敗しました。";
+      if (error.code === 'storage/unauthorized') {
+        errorMsg += "画像のアップロード権限がありません。FirebaseのStorageルールを確認してください。";
+      } else if (error.code === 'storage/canceled') {
+        errorMsg += "アップロードがキャンセルされました。";
+      } else {
+        errorMsg += "もう一度お試しください。";
+      }
+      alert(errorMsg);
     } finally {
       setSaving(false);
+      setUploadProgress(null);
     }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImageFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []);
+    const MAX_IMAGES = 5;
+    
+    if (imageUrls.length + imageFiles.length + files.length > MAX_IMAGES) {
+      alert(`画像は最大${MAX_IMAGES}枚までです。`);
+      return;
     }
+
+    if (files.length > 0) {
+      setImageFiles(prev => [...prev, ...files]);
+      
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreviews(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeExistingImage = (index: number) => {
+    setImageUrls(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const removeNewImage = (index: number) => {
+    setImageFiles(prev => prev.filter((_, i) => i !== index));
+    setImagePreviews(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleDelete = async () => {
@@ -181,8 +230,17 @@ export default function EditDiary() {
               disabled={saving || !content.trim()}
               className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-light text-white px-5 py-2.5 rounded-2xl font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:opacity-90 active:scale-[0.97] btn-glow cursor-pointer"
             >
-              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-              保存
+              {saving ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>{uploadProgress !== null ? `${uploadProgress}%` : "保存中..."}</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4" />
+                  <span>保存</span>
+                </>
+              )}
             </button>
           </div>
         </div>
@@ -212,24 +270,34 @@ export default function EditDiary() {
             )}
           </div>
 
-          {/* Image preview/upload */}
-          {(imagePreview || imageUrl) && (
-            <div className="relative mx-6 mt-4 rounded-2xl overflow-hidden aspect-video border border-border group">
-              <img 
-                src={imagePreview || imageUrl || ""} 
-                alt="Diary cover" 
-                className="w-full h-full object-cover" 
-              />
-              <button 
-                onClick={() => {
-                  setImageFile(null);
-                  setImagePreview(null);
-                  setImageUrl(null);
-                }}
-                className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          {/* Image gallery preview */}
+          {(imageUrls.length > 0 || imagePreviews.length > 0) && (
+            <div className="mx-6 mt-4 flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {/* Existing images */}
+              {imageUrls.map((url, idx) => (
+                <div key={`existing-${idx}`} className="relative shrink-0 w-32 aspect-square rounded-xl overflow-hidden border border-border group">
+                  <img src={url} alt="" className="w-full h-full object-cover" />
+                  <button 
+                    onClick={() => removeExistingImage(idx)}
+                    className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+              {/* Newly selected images */}
+              {imagePreviews.map((preview, idx) => (
+                <div key={`new-${idx}`} className="relative shrink-0 w-32 aspect-square rounded-xl overflow-hidden border border-primary/30 group">
+                  <img src={preview} alt="" className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 bg-primary/10 pointer-events-none" />
+                  <button 
+                    onClick={() => removeNewImage(idx)}
+                    className="absolute top-1 right-1 p-1 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
             </div>
           )}
 
@@ -261,10 +329,11 @@ export default function EditDiary() {
               
               <label className="shrink-0 flex items-center gap-2 px-3 py-1.5 bg-surface border border-border rounded-xl text-xs font-medium text-muted hover:text-primary hover:border-primary/40 transition-all cursor-pointer">
                 <ImageIcon className="w-3.5 h-3.5" />
-                <span>画像を{imagePreview || imageUrl ? "表示" : "追加"}</span>
+                <span>画像を追加</span>
                 <input 
                   type="file" 
                   accept="image/*" 
+                  multiple
                   onChange={handleImageChange}
                   className="hidden" 
                 />
@@ -289,9 +358,14 @@ export default function EditDiary() {
             </h3>
             <div className="group block bg-card/40 backdrop-blur-sm border border-primary/20 rounded-2xl hover:border-primary/40 transition-all card-hover">
                 <div className="flex gap-4 p-4">
-                  {lastYearDiary.imageUrl && (
-                    <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-border/50">
-                      <img src={lastYearDiary.imageUrl} alt="Last year" className="w-full h-full object-cover" />
+                  {((lastYearDiary.imageUrls && lastYearDiary.imageUrls.length > 0) || lastYearDiary.imageUrl) && (
+                    <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-border/50 relative">
+                      <img src={lastYearDiary.imageUrls?.[0] || lastYearDiary.imageUrl} alt="Last year" className="w-full h-full object-cover" />
+                      {(lastYearDiary.imageUrls?.length || 1) > 1 && (
+                        <div className="absolute bottom-1 right-1 bg-black/50 text-white text-[8px] px-1 rounded-md backdrop-blur-sm font-bold">
+                          {(lastYearDiary.imageUrls?.length || 1)}枚
+                        </div>
+                      )}
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
