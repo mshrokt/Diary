@@ -94,12 +94,21 @@ export default function EditDiary() {
       let finalImageUrls = [...imageUrls];
 
       if (imageFiles.length > 0) {
-        for (const file of imageFiles) {
-          // Compress image before upload
-          const compressedBlob = await compressImage(file);
+        for (let i = 0; i < imageFiles.length; i++) {
+          const file = imageFiles[i];
+          
+          // Try to compress, fallback to original if compression fails
+          let uploadBlob: Blob = file;
+          try {
+            uploadBlob = await compressImage(file);
+          } catch (compressError) {
+            console.warn("Compression failed, using original file:", compressError);
+            // Use the original file as fallback
+            uploadBlob = file;
+          }
           
           const fileRef = ref(storage, `diaries/${user.uid}/${Date.now()}_${file.name}`);
-          const uploadTask = uploadBytesResumable(fileRef, compressedBlob);
+          const uploadTask = uploadBytesResumable(fileRef, uploadBlob);
 
           const downloadURL = await new Promise<string>((resolve, reject) => {
             uploadTask.on(
@@ -131,13 +140,13 @@ export default function EditDiary() {
       router.refresh();
     } catch (error: any) {
       console.error("Error saving diary:", error);
-      let errorMsg = `保存に失敗しました。(${error.code || error.message || '不明なエラー'})`;
-      if (error.code === 'storage/unauthorized') {
-        errorMsg += "\n画像のアップロード権限がありません。FirebaseのStorageルールを確認してください。";
-      } else if (error.code === 'storage/canceled') {
-        errorMsg += "\nアップロードがキャンセルされました。";
-      } else {
-        errorMsg += "\nインターネット接続やブラウザの設定を確認してください。";
+      const code = error?.code || "";
+      const msg = error?.message || "";
+      let errorMsg = `保存に失敗しました。\n\nエラー詳細: ${code || msg || "不明"}`;
+      if (code === 'storage/unauthorized') {
+        errorMsg += "\n\n→ FirebaseのStorage Rulesでアップロードが許可されていません。";
+      } else if (code === 'storage/canceled') {
+        errorMsg += "\n\n→ アップロードがキャンセルされました。";
       }
       alert(errorMsg);
     } finally {
