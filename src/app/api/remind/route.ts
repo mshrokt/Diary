@@ -1,24 +1,32 @@
 import { NextResponse } from "next/server";
-import webpush from "web-push";
 import { getSubscriptions, getDiaries } from "@/lib/db";
 
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
-const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
-
-webpush.setVapidDetails(
-  "mailto:your-email@example.com",
-  VAPID_PUBLIC_KEY,
-  VAPID_PRIVATE_KEY
-);
+export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  // Check for authorization (Vercel Cron sends a specific header, or we can use a custom secret)
+  // Check for authorization (Vercel Cron sends a specific header)
   const authHeader = request.headers.get('authorization');
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new NextResponse('Unauthorized', { status: 401 });
   }
 
   try {
+    // Lazy-load web-push to avoid build-time initialization errors
+    const webpush = (await import("web-push")).default;
+    
+    const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
+    const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
+    
+    if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      return NextResponse.json({ success: false, error: "VAPID keys not configured" }, { status: 500 });
+    }
+    
+    webpush.setVapidDetails(
+      "mailto:diary@example.com",
+      VAPID_PUBLIC_KEY,
+      VAPID_PRIVATE_KEY
+    );
+
     const subscriptions: any[] = await getSubscriptions();
     const results = { sent: 0, skipped: 0, errors: 0 };
 
@@ -43,7 +51,6 @@ export async function GET(request: Request) {
       });
 
       if (!hasEntryToday) {
-        // Send notification to all devices for this user
         for (const sub of userSubs) {
           try {
             await webpush.sendNotification(
