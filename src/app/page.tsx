@@ -344,7 +344,7 @@ export default function Home() {
                             すべて管理
                         </Link>
                     </div>
-                    <div className="flex flex-wrap gap-2 items-center">
+                    <div className="flex flex-wrap gap-2 items-center px-2">
                         {actualTags.slice(0, 8).map(tag => (
                             <button
                                 key={tag}
@@ -416,7 +416,7 @@ export default function Home() {
             {topTags.length > 0 && (
                 <div className="flex flex-col gap-2 animate-fade-in">
                     <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Interests</span>
+                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Interests RANKING</span>
                         {(searchQuery || selectedTag || selectedKeyword) && (
                             <button 
                                 onClick={() => {setSearchQuery(""); setSelectedTag(null); setSelectedKeyword(null);}}
