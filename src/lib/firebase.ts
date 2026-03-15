@@ -1,6 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore } from "firebase/firestore";
+import { getFirestore, enableMultiTabIndexedDbPersistence } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -18,7 +18,6 @@ const auth = getAuth(app);
 const db = getFirestore(app);
 
 // Enable offline persistence
-import { enableMultiTabIndexedDbPersistence } from "firebase/firestore";
 if (typeof window !== "undefined") {
   enableMultiTabIndexedDbPersistence(db).catch((err) => {
     if (err.code === "failed-precondition") {
