@@ -418,7 +418,7 @@ export default function Home() {
             )}
 
             {/* Keyword / Interests Section */}
-            {topTags.length > 0 && !searchQuery && !selectedTag && (
+            {topTags.length > 0 && !searchQuery && !selectedTag && !selectedKeyword && (
                 <div className="flex flex-col gap-2 animate-fade-in">
                     <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Interests</span>
                     <div className="flex flex-wrap gap-x-6 gap-y-4 px-2">
