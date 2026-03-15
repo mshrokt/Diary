@@ -26,7 +26,17 @@ export default function Navbar() {
   const [notificationStatus, setNotificationStatus] = useState<"default" | "granted" | "denied" | "unsupported">("default");
   const [isSubscribed, setIsSubscribed] = useState(false);
 
+  const [debugLog, setDebugLog] = useState<string[]>([]);
+
   useEffect(() => {
+    // Listen for messages from Service Worker
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data?.type === "PUSH_RECEIVED") {
+        setDebugLog(prev => [...prev, `Push Received: ${new Date().toLocaleTimeString()}`]);
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", handleMessage);
+
     const isDarkStored = localStorage.getItem("theme") === "dark";
     if (isDarkStored) {
       document.documentElement.classList.add("dark");
@@ -46,6 +56,7 @@ export default function Navbar() {
         });
       }
     }
+    return () => navigator.serviceWorker.removeEventListener("message", handleMessage);
   }, []);
 
   const toggleTheme = () => {
@@ -179,6 +190,13 @@ export default function Navbar() {
           )}
         </div>
       </div>
+      {/* Debug Logs */}
+      {debugLog.length > 0 && (
+        <div className="bg-yellow-100 dark:bg-yellow-900/30 text-[10px] py-1 px-5 flex flex-wrap gap-2 border-t border-yellow-200 dark:border-yellow-800">
+          <span className="font-bold flex items-center gap-1">DEBUG MONITOR:</span>
+          {debugLog.map((log, i) => <span key={i} className="bg-white/50 dark:bg-black/20 rounded px-1 animate-pulse">{log}</span>)}
+        </div>
+      )}
     </nav>
   );
 }
