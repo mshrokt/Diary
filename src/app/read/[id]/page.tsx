@@ -189,7 +189,7 @@ export default function ReadDiary() {
                         return (
                           <div key={idx} className="text-[10px] text-muted/70 flex justify-between">
                             <span>編集 {idx + 1}</span>
-                            <span>{d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}</span>
+                            <span>{d.getFullYear()}/{d.getMonth() + 1}/{d.getDate()} {String(d.getHours()).padStart(2, '0')}:{String(d.getMinutes()).padStart(2, '0')}</span>
                           </div>
                         );
                       })}
