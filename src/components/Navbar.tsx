@@ -6,7 +6,7 @@ import { LogOut, BookOpen, Sun, Moon, Bell, BellOff, Loader2 } from "lucide-reac
 import { useState, useEffect } from "react";
 import { saveSubscription, deleteSubscription } from "@/lib/db";
 
-const VAPID_PUBLIC_KEY = "BNBrxTJwNdHvA2Qmf0VvCt_Q0rF9jSm6XoN6SzptCwRpkcb60l5U85iknCX82Bl_L1SvpN-KjGEaxv4MUvXRjWo";
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
