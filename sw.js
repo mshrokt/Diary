@@ -30,25 +30,12 @@ self.addEventListener("fetch", (event) => {
 // --- Push Notifications ---
 
 self.addEventListener("push", (event) => {
-  let data = {};
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      console.error("Push data is not JSON:", event.data.text());
-      data = { body: event.data.text() };
-    }
-  }
-
-  console.log("DEBUG: Push event received!", data);
-
-  const title = data.title || "My Diary";
+  // Diagnostic: Ignore payload and show hardcoded message
+  const title = "My Diary (Server)";
   const options = {
-    body: data.body || "今日のできごとを記録しませんか？",
+    body: "サーバーからの信号を受け取りました！",
     icon: "/icon-192x192.png",
-    data: {
-      url: data.url || "/",
-    }
+    tag: "test-push"
   };
 
   event.waitUntil(
