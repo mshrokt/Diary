@@ -173,9 +173,17 @@ body {
 }
 
 /* Stagger animation delays for lists */
-.stagger-1 { animation-delay: 0.05s; }
-.stagger-2 { animation-delay: 0.1s; }
-.stagger-3 { animation-delay: 0.15s; }
-.stagger-4 { animation-delay: 0.2s; }
-.stagger-5 { animation-delay: 0.25s; }
-.stagger-6 { animation-delay: 0.3s; }
+/* Custom utility for mobile-friendly hover icons */
+@layer utilities {
+  .show-on-hover {
+    opacity: 1;
+  }
+  @media (hover: hover) {
+    .group:not(:hover) .show-on-hover {
+      opacity: 0;
+    }
+    .show-on-hover {
+      transition: opacity 0.2s ease;
+    }
+  }
+}
