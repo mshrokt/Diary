@@ -37,8 +37,7 @@ export default function Home() {
     if (user) {
       const q = query(
         collection(db, "diaries"),
-        where("userId", "==", user.uid),
-        orderBy("createdAt", "desc")
+        where("userId", "==", user.uid)
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -70,6 +69,7 @@ export default function Home() {
     const dataMap = new Map<string, { intensity: number; id: string; preview: string; hasImage: boolean }>();
     const tagSet = new Set<string>();
     const tagCounts: Record<string, number> = {};
+    const filtered: Diary[] = [];
     
     // Calculate "One Year Ago" target
     const now = new Date();
@@ -79,84 +79,64 @@ export default function Home() {
     const lyDay = now.getDate();
     let lyFound: Diary | null = null;
 
-    const filtered = diaries.filter((d) => {
+    // 0. Sort all diaries by "Activity Order" (createdAt || date) desc
+    const sortedAll = [...diaries].sort((a, b) => (b.createdAt || b.date) - (a.createdAt || a.date));
+
+    // Performance Optimization: Cache lowercase search query
+    const lowerQuery = searchQuery.toLowerCase();
+
+    sortedAll.forEach((d) => {
       // 1. Collect tags and count frequencies
       d.tags?.forEach(t => {
         tagSet.add(t);
         tagCounts[t] = (tagCounts[t] || 0) + 1;
       });
 
-      // 2. Simple keyword extraction from content
-      // Extract words that are likely nouns (2+ chars for Kanji/Katakana, 3+ for Hiragana/English)
-      const words = d.content.match(/([一-龠]{2,}|[ァ-ヶ]{2,}|[ぁ-ん]{3,}|[a-zA-Z]{3,})/g) || [];
-      const stopWords = [
-        // Common grammatical / functional words
-        "から", "ので", "した", "です", "ます", "など", "こと", "もの", "ため", "よう", "みたい",
-        "感じ", "思った", "書いた", "でした", "される", "ている", "ところ", "という", "そして",
-        "しかし", "だった", "なくて", "けれど", "ななめ", "あした", "きょう", "昨日",
-        // Common adverbs / adjectives / vague words
-        "本当", "結構", "普通", "最近", "今日", "明日", "自分", "全然", "絶対", "多分",
-        "やっぱり", "やはり", "すごい", "すごく", "とても", "かなり", "ちょっと", "少し",
-        "たくさん", "いろいろ", "やっぱ", "めっちゃ", "まあまあ",
-        // Common verbs / verb-like expressions
-        "思う", "考える", "行った", "行く", "来た", "見た", "見る", "食べた", "食べる",
-        "出来", "出来る", "出た", "入った", "知った", "言った", "言う", "使った", "使う",
-        "始めた", "終わった", "続けた", "帰った", "帰る", "買った", "作った", "持った",
-        "なった", "なる", "ある", "いる", "する", "できる", "やる", "もらう", "くれる",
-        // Time / generic nouns
-        "時間", "今回", "前回", "部分", "場所", "意味", "理由", "結果", "状態", "状況",
-        "方法", "問題", "関係", "必要", "可能", "大丈夫", "大変", "一番", "最初", "最後",
-        "気持ち", "程度", "以上", "以下", "以前", "以降", "途中", "毎日", "毎回",
-        "今年", "去年", "来年", "今月", "先月", "来月", "今週", "先週", "来週",
-        "午前", "午後", "夕方", "朝方", "日中",
-        // Pronouns / demonstratives
-        "それ", "これ", "あれ", "ここ", "そこ", "あそこ", "どこ",
-        "その", "この", "あの", "どの", "そう", "こう", "ああ", "どう",
-        // Conjunctions / particles
-        "だから", "それで", "でも", "けど", "ただ", "また", "もう", "まだ", "ずっと",
-        "一応", "とりあえず",
-      ];
-      
-      const isRecent = d.date >= thirtyDaysAgo;
-      
-      words.forEach(w => {
-          if (!isRecent) return; // Only count keywords from the last 30 days
-          if (stopWords.some(sw => w.includes(sw) || sw.includes(w))) return;
-          // Avoid words that end with common verb suffixes if they are hiragana-heavy
-          if (w.length <= 3 && /[ぁ-ん]$/.test(w)) return;
-          
-          tagCounts[w] = (tagCounts[w] || 0) + 0.5; // Keywords have lower weight than explicit tags
-      });
+      // 2. Simple keyword extraction (Only if NOT searching, to keep filtering light)
+      if (!lowerQuery && !selectedTag && !selectedKeyword) {
+          const words = d.content.match(/([一-龠]{2,}|[ァ-ヶ]{2,}|[ぁ-ん]{3,}|[a-zA-Z]{3,})/g) || [];
+          const isRecent = d.date >= thirtyDaysAgo;
+          if (isRecent) {
+              const stopWords = ["から", "ので", "した", "です", "ます", "など", "こと", "もの", "ため", "よう", "みたい", "感じ", "思い", "書い", "でした", "される", "てい", "ところ", "という", "そして", "しかし", "だった", "なくて", "けれど", "ななめ", "あした", "きょう", "昨日", "本当", "結構", "普通", "最近", "今日", "明日", "自分", "全然", "絶対", "多分", "やっぱり", "やはり", "すごい", "すごく", "とても", "かなり", "ちょっと", "少し", "たくさん", "いろいろ", "やっぱ", "めっちゃ", "まあまあ", "思う", "考える", "行った", "行く", "来た", "見た", "見る", "食べた", "食べる", "出来", "出来る", "出た", "入った", "知った", "言った", "言う", "使った", "使う", "始めた", "終わった", "続けた", "帰った", "帰る", "買った", "作った", "持った", "なった", "なる", "ある", "いる", "する", "できる", "やる", "もらう", "くれる", "時間", "今回", "前回", "部分", "場所", "意味", "理由", "結果", "状態", "状況", "方法", "問題", "関係", "必要", "可能", "大丈夫", "大変", "一番", "最初", "最後", "気持ち", "程度", "以上", "以下", "以前", "以降", "途中", "毎日", "毎回", "今年", "去年", "来年", "今月", "先月", "来月", "今週", "先週", "来週", "午前", "午後", "夕方", "朝方", "日中", "それ", "これ", "あれ", "ここ", "そこ", "あそこ", "どこ", "その", "この", "あの", "どの", "そう", "こう", "ああ", "どう", "だから", "それで", "でも", "けど", "ただ", "また", "もう", "まだ", "ずっと", "一応", "とりあえず"];
+              words.forEach(w => {
+                  if (stopWords.some(sw => w.includes(sw) || sw.includes(w))) return;
+                  if (w.length <= 3 && /[ぁ-ん]$/.test(w)) return;
+                  tagCounts[w] = (tagCounts[w] || 0) + 0.5;
+              });
+          }
+      }
 
-      // 3. Build calendar data (intensity based on character count)
+      // 3. Build calendar data
       const dt = new Date(d.date);
       const isLastYearToday = dt.getFullYear() === lyYear && dt.getMonth() === lyMonth && dt.getDate() === lyDay;
       if (isLastYearToday) lyFound = d;
 
       const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
       const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "", hasImage: false };
-      
       const contentPreview = d.content.length > 40 ? d.content.substring(0, 40) + "..." : d.content;
       
       dataMap.set(dateStr, {
         intensity: current.intensity + d.content.length,
-        id: d.id!, // Last entry id for that date is used for navigation
+        id: d.id!,
         preview: current.preview ? current.preview + "\n---\n" + contentPreview : contentPreview,
         hasImage: !!current.hasImage || !!(d.images && d.images.length > 0),
       });
 
-      // Filter logic
-      const matchesSearch = d.content.toLowerCase().includes(searchQuery.toLowerCase());
+      // 4. Filter logic
+      const contentLower = d.content.toLowerCase();
+      const matchesSearch = contentLower.includes(lowerQuery);
       const matchesTag = !selectedTag || d.tags?.includes(selectedTag);
-      const matchesKeyword = !selectedKeyword || d.content.toLowerCase().includes(selectedKeyword.toLowerCase());
-      return matchesSearch && matchesTag && matchesKeyword;
+      const matchesKeyword = !selectedKeyword || contentLower.includes(selectedKeyword.toLowerCase());
+      if (matchesSearch && matchesTag && matchesKeyword) {
+          filtered.push(d);
+      }
     });
 
     // Sort tags/keywords by frequency
     const sortedTags = Object.entries(tagCounts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 5); // Top 5 items
+      .slice(0, 5);
 
     return {
       filteredDiaries: filtered,
