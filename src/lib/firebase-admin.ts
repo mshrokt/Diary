@@ -13,7 +13,7 @@ function getAdminApp() {
     try {
       console.log("DEBUG: FIREBASE_SERVICE_ACCOUNT_KEY found. Parsing...");
       const serviceAccount: ServiceAccount = JSON.parse(serviceAccountKey);
-      console.log("DEBUG: Service Account parsed successfully for project:", serviceAccount.projectId);
+      console.log("DEBUG: Service Account parsed successfully for project:", (serviceAccount as any).project_id || (serviceAccount as any).projectId);
       return initializeApp({
         credential: cert(serviceAccount),
       });

@@ -86,6 +86,14 @@ export const saveSubscription = async (userId: string, subscription: any) => {
       subscription, // Full browser subscription object
       endpoint: subscription.endpoint,
       createdAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  } else {
+    // Update existing subscription in case keys changed
+    const docRef = doc(db, "subscriptions", snapshot.docs[0].id);
+    await updateDoc(docRef, {
+      subscription,
+      updatedAt: Date.now(),
     });
   }
 };

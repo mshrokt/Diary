@@ -89,6 +89,10 @@ export async function GET(request: Request) {
             results.sent++;
           } catch (error: any) {
             console.error(`DEBUG ERROR: Failed to send to user ${userId}:`, error.message || error);
+            if (error.statusCode) {
+              console.error(`DEBUG STATUS: ${error.statusCode}`);
+              console.error(`DEBUG BODY: ${error.body}`);
+            }
             results.errors++;
           }
         }
