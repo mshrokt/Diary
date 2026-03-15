@@ -37,8 +37,8 @@ self.addEventListener("push", (event) => {
 
   const options = {
     body: data.body,
-    icon: "/icons/icon-192x192.png", // Use the generated app icon
-    badge: "/icons/icon-192x192.png",
+    icon: "/icon-192x192.png", // Use the generated app icon
+    badge: "/icon-192x192.png",
     vibrate: [100, 50, 100],
     data: {
       url: data.url || "/",
