@@ -65,9 +65,6 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
       <div className="flex items-center justify-between mb-4">
         <div>
           <h2 className="text-lg font-bold tracking-tight">{monthName}</h2>
-          {entriesThisMonth > 0 && (
-            <p className="text-xs text-muted mt-0.5">{entriesThisMonth}日記録あり</p>
-          )}
         </div>
         <div className="flex items-center gap-1">
           <button
@@ -175,7 +172,7 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
           </div>
           <div className="flex items-center gap-2">
             <span className="font-medium text-primary">
-                記録した日: {diaryData.size}日
+                記録した日: {entriesThisMonth}日
             </span>
           </div>
         </div>
