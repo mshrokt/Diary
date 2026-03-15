@@ -39,7 +39,7 @@ export default function ReadDiary() {
           
           const sameDayDiaries = allDiaries
             .filter((d) => new Date(d.date).toISOString().split("T")[0] === targetDateStr)
-            .sort((a, b) => a.date - b.date); // Sort by sub-day time
+            .sort((a, b) => (a.createdAt || a.date) - (b.createdAt || b.date)); // Sort by actual creation time
 
           setDiaries(sameDayDiaries);
         } else {
@@ -207,7 +207,7 @@ export default function ReadDiary() {
                   <span>{diary.content.length} 文字</span>
                   <span>
                     投稿: {(() => {
-                      const d = new Date(diary.date);
+                      const d = new Date(diary.createdAt || diary.date);
                       return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
                     })()}
                   </span>
