@@ -30,23 +30,35 @@ self.addEventListener("fetch", (event) => {
 // --- Push Notifications ---
 
 self.addEventListener("push", (event) => {
-  console.log("DEBUG: Push event received!");
-  
+  let data = {};
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { body: event.data.text() };
+    }
+  }
+
   // Broadcast to all windows to show in the debug console
   self.clients.matchAll().then(clients => {
     clients.forEach(client => {
       client.postMessage({
         type: "PUSH_RECEIVED",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        data: data
       });
     });
   });
 
-  const title = "My Diary (Server)";
+  const title = data.title || "My Diary";
   const options = {
-    body: "サーバーからの信号を受け取りました！",
+    body: data.body || "今日のできごとを記録しませんか？",
     icon: "/icon-192x192.png",
-    tag: "test-push"
+    badge: "/icon-192x192.png",
+    data: {
+      url: data.url || "/",
+    },
+    tag: "diary-reminder"
   };
 
   event.waitUntil(
