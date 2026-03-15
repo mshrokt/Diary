@@ -79,9 +79,31 @@ export default function Home() {
       // Extract words that are likely nouns (2+ chars for Kanji/Katakana, 3+ for Hiragana/English)
       const words = d.content.match(/([一-龠]{2,}|[ァ-ヶ]{2,}|[ぁ-ん]{3,}|[a-zA-Z]{3,})/g) || [];
       const stopWords = [
-        "から", "ので", "した", "です", "ます", "など", "こと", "もの", "ため", "よう", "みたい", 
-        "感じ", "思った", "書いた", "でした", "される", "ている", "ところ", "という", "そして", 
-        "しかし", "だった", "なくて", "けれど", "ななめ", "あした", "きょう", "昨日"
+        // Common grammatical / functional words
+        "から", "ので", "した", "です", "ます", "など", "こと", "もの", "ため", "よう", "みたい",
+        "感じ", "思った", "書いた", "でした", "される", "ている", "ところ", "という", "そして",
+        "しかし", "だった", "なくて", "けれど", "ななめ", "あした", "きょう", "昨日",
+        // Common adverbs / adjectives / vague words
+        "本当", "結構", "普通", "最近", "今日", "明日", "自分", "全然", "絶対", "多分",
+        "やっぱり", "やはり", "すごい", "すごく", "とても", "かなり", "ちょっと", "少し",
+        "たくさん", "いろいろ", "やっぱ", "めっちゃ", "まあまあ",
+        // Common verbs / verb-like expressions
+        "思う", "考える", "行った", "行く", "来た", "見た", "見る", "食べた", "食べる",
+        "出来", "出来る", "出た", "入った", "知った", "言った", "言う", "使った", "使う",
+        "始めた", "終わった", "続けた", "帰った", "帰る", "買った", "作った", "持った",
+        "なった", "なる", "ある", "いる", "する", "できる", "やる", "もらう", "くれる",
+        // Time / generic nouns
+        "時間", "今回", "前回", "部分", "場所", "意味", "理由", "結果", "状態", "状況",
+        "方法", "問題", "関係", "必要", "可能", "大丈夫", "大変", "一番", "最初", "最後",
+        "気持ち", "程度", "以上", "以下", "以前", "以降", "途中", "毎日", "毎回",
+        "今年", "去年", "来年", "今月", "先月", "来月", "今週", "先週", "来週",
+        "午前", "午後", "夕方", "朝方", "日中",
+        // Pronouns / demonstratives
+        "それ", "これ", "あれ", "ここ", "そこ", "あそこ", "どこ",
+        "その", "この", "あの", "どの", "そう", "こう", "ああ", "どう",
+        // Conjunctions / particles
+        "だから", "それで", "でも", "けど", "ただ", "また", "もう", "まだ", "ずっと",
+        "一応", "とりあえず",
       ];
       
       words.forEach(w => {
@@ -119,7 +141,7 @@ export default function Home() {
     const sortedTags = Object.entries(tagCounts)
       .map(([name, count]) => ({ name, count }))
       .sort((a, b) => b.count - a.count)
-      .slice(0, 8); // Top 8 items
+      .slice(0, 5); // Top 5 items
 
     return {
       filteredDiaries: filtered,
@@ -402,10 +424,8 @@ export default function Home() {
 
             {/* Keyword / Interests Section */}
             {topTags.length > 0 && !searchQuery && !selectedTag && (
-                <div className="animate-fade-in">
-                    <h3 className="text-xs font-bold text-muted mb-4 flex items-center gap-2 uppercase tracking-wider">
-                        Interests
-                    </h3>
+                <div className="flex flex-col gap-2 animate-fade-in">
+                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Interests</span>
                     <div className="flex flex-wrap gap-x-6 gap-y-4 px-2">
                         {topTags.map((tag, idx) => (
                             <div key={tag.name} className="flex flex-col gap-1">
