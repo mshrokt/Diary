@@ -61,13 +61,13 @@ export default function Home() {
 
   const { filteredDiaries, diaryData, allTags, lastYearDiary, topTags, actualTags } = useMemo<{
     filteredDiaries: Diary[];
-    diaryData: Map<string, { intensity: number; id: string; preview: string }>;
+    diaryData: Map<string, { intensity: number; id: string; preview: string; hasImage: boolean }>;
     allTags: string[];
     lastYearDiary: Diary | null;
     topTags: { name: string; count: number }[];
     actualTags: string[];
   }>(() => {
-    const dataMap = new Map<string, { intensity: number; id: string; preview: string }>();
+    const dataMap = new Map<string, { intensity: number; id: string; preview: string; hasImage: boolean }>();
     const tagSet = new Set<string>();
     const tagCounts: Record<string, number> = {};
     
@@ -134,7 +134,7 @@ export default function Home() {
       if (isLastYearToday) lyFound = d;
 
       const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
-      const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "" };
+      const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "", hasImage: false };
       
       const contentPreview = d.content.length > 40 ? d.content.substring(0, 40) + "..." : d.content;
       
@@ -142,6 +142,7 @@ export default function Home() {
         intensity: current.intensity + d.content.length,
         id: d.id!, // Last entry id for that date is used for navigation
         preview: current.preview ? current.preview + "\n---\n" + contentPreview : contentPreview,
+        hasImage: !!current.hasImage || !!(d.images && d.images.length > 0),
       });
 
       // Filter logic

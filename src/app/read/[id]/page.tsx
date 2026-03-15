@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { getDiaries, deleteDiary } from "@/lib/db";
 import { Diary } from "@/types/diary";
-import { ArrowLeft, PenSquare, Trash2, Calendar, Loader2, Tag, History } from "lucide-react";
+import { ArrowLeft, PenSquare, Trash2, Calendar, Loader2, Tag, History, X, Maximize2 } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
@@ -18,6 +18,7 @@ export default function ReadDiary() {
   const [diaries, setDiaries] = useState<Diary[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -155,14 +156,29 @@ export default function ReadDiary() {
 
               {/* Images in reader */}
               {diary.images && diary.images.length > 0 && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                <div className={`grid gap-4 mb-8 ${
+                  diary.images.length === 1 ? 'grid-cols-1' : 
+                  diary.images.length === 2 ? 'grid-cols-2' : 
+                  'grid-cols-2 sm:grid-cols-3'
+                }`}>
                   {diary.images.map((url, idx) => (
-                    <div key={idx} className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-border shadow-sm group/img">
+                    <div 
+                      key={idx} 
+                      onClick={() => setSelectedImage(url)}
+                      className={`relative rounded-3xl overflow-hidden border border-border shadow-md group/img cursor-zoom-in transition-all duration-300 hover:shadow-xl hover:-translate-y-1 ${
+                        diary.images?.length === 1 ? 'aspect-video max-h-[400px]' : 'aspect-square'
+                      }`}
+                    >
                       <img 
                         src={url} 
                         alt={`Entry photo ${idx + 1}`} 
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105" 
+                        className="w-full h-full object-cover transition-all duration-700 group-hover/img:scale-110" 
                       />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+                        <div className="bg-white/20 backdrop-blur-md p-3 rounded-full border border-white/30 transform scale-75 group-hover/img:scale-100 transition-transform duration-300">
+                          <Maximize2 className="w-5 h-5 text-white" />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -209,6 +225,29 @@ export default function ReadDiary() {
           ))}
         </div>
       </main>
+
+      {/* Lightbox Overlay */}
+      {selectedImage && (
+        <div 
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-lg animate-fade-in p-4 sm:p-10 cursor-zoom-out"
+          onClick={() => setSelectedImage(null)}
+        >
+          <button 
+            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all active:scale-95"
+            onClick={() => setSelectedImage(null)}
+          >
+            <X className="w-6 h-6" />
+          </button>
+          
+          <div className="relative w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+            <img 
+              src={selectedImage} 
+              alt="Full size" 
+              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-up"
+            />
+          </div>
+        </div>
+      )}
     </>
   );
 }

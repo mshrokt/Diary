@@ -1,10 +1,10 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Image as ImageIcon } from "lucide-react";
 import { useState } from "react";
 
 interface CalendarProps {
-  diaryData: Map<string, { intensity: number; id: string; preview?: string }>; // "YYYY-MM-DD" -> { intensity, id, preview }
+  diaryData: Map<string, { intensity: number; id: string; preview?: string; hasImage?: boolean }>; // "YYYY-MM-DD" -> { intensity, id, preview, hasImage }
   onDateClick: (dateStr: string) => void;
 }
 
@@ -141,6 +141,11 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
               >
                 {day}
               </span>
+              {dayInfo?.hasImage && (
+                <div className="absolute top-1 left-1 pointer-events-none">
+                    <ImageIcon className={`w-2.5 h-2.5 ${(dayInfo?.intensity ?? 0) >= 500 ? 'text-white/80' : 'text-primary/60'}`} />
+                </div>
+              )}
               {isToday && hasDiary && (
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent border-2 border-card rounded-full shadow-sm" />
               )}
