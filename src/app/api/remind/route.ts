@@ -68,6 +68,7 @@ export async function GET(request: Request) {
         console.log(`DEBUG: User ${userId} has no entry for today. Sending notification...`);
         for (const sub of userSubs) {
           try {
+            console.log(`DEBUG: Sending to endpoint: ${sub.endpoint}`);
             await webpush.sendNotification(
               sub,
               JSON.stringify({

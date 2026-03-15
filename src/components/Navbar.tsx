@@ -119,24 +119,40 @@ export default function Navbar() {
 
         <div className="flex items-center gap-2">
           {user && notificationStatus !== "unsupported" && (
-            <button
-              onClick={handleNotificationToggle}
-              disabled={isSubscribing}
-              className={`p-2.5 rounded-xl transition-all duration-200 active:scale-90 ${
-                isSubscribed 
-                ? "text-primary bg-primary/10" 
-                : "text-muted hover:bg-surface-hover"
-              }`}
-              title={isSubscribed ? "通知オン（クリックでオフ）" : "20時に通知を送る"}
-            >
-              {isSubscribing ? (
-                <Loader2 className="w-[18px] h-[18px] animate-spin" />
-              ) : isSubscribed ? (
-                <Bell className="w-[18px] h-[18px]" />
-              ) : (
-                <BellOff className="w-[18px] h-[18px]" />
+            <div className="flex items-center gap-1">
+              <button
+                onClick={handleNotificationToggle}
+                disabled={isSubscribing}
+                className={`p-2.5 rounded-xl transition-all duration-200 active:scale-90 ${
+                  isSubscribed 
+                  ? "text-primary bg-primary/10" 
+                  : "text-muted hover:bg-surface-hover"
+                }`}
+                title={isSubscribed ? "通知オン（クリックでオフ）" : "20時に通知を送る"}
+              >
+                {isSubscribing ? (
+                  <Loader2 className="w-[18px] h-[18px] animate-spin" />
+                ) : isSubscribed ? (
+                  <Bell className="w-[18px] h-[18px]" />
+                ) : (
+                  <BellOff className="w-[18px] h-[18px]" />
+                )}
+              </button>
+              {isSubscribed && (
+                <button
+                  onClick={async () => {
+                    const reg = await navigator.serviceWorker.ready;
+                    reg.showNotification("テスト通知", {
+                      body: "これが表示されれば、端末の設定はOKです！",
+                      icon: "/icon-192x192.png"
+                    });
+                  }}
+                  className="text-[10px] font-bold px-2 py-1 bg-gray-100 rounded-md text-gray-500 hover:bg-gray-200 transition-colors"
+                >
+                  TEST
+                </button>
               )}
-            </button>
+            </div>
           )}
           <button
             onClick={toggleTheme}

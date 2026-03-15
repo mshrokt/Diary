@@ -46,19 +46,13 @@ self.addEventListener("push", (event) => {
   const options = {
     body: data.body || "今日のできごとを記録しませんか？",
     icon: "/icon-192x192.png",
-    badge: "/icon-192x192.png",
     data: {
       url: data.url || "/",
-    },
-    tag: "diary-reminder",
-    renotify: true,
-    silent: false
+    }
   };
 
   event.waitUntil(
     self.registration.showNotification(title, options)
-      .then(() => console.log("DEBUG: Notification shown successfully"))
-      .catch((err) => console.error("DEBUG ERROR: Failed to show notification", err))
   );
 });
 
