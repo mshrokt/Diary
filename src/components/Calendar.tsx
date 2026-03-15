@@ -142,7 +142,7 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
                 {day}
               </span>
               {dayInfo?.hasImage && (
-                <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-accent/40 rounded-tl-[6px] pointer-events-none" />
+                <div className="absolute inset-0 border border-accent/20 rounded-xl pointer-events-none" />
               )}
               {isToday && hasDiary && (
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent border-2 border-card rounded-full shadow-sm" />
