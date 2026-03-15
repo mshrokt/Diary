@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { createDiary, getDiaries, updateDiary, deleteDiary } from "@/lib/db";
@@ -8,7 +8,6 @@ import { Diary } from "@/types/diary";
 import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight, Image as ImageIcon, X as XIcon } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
-import { CldUploadWidget } from 'next-cloudinary';
 
 export default function EditDiary() {
   const { user, loading: authLoading } = useAuth();
@@ -29,6 +28,8 @@ export default function EditDiary() {
   const [draftSaving, setDraftSaving] = useState(false);
   const [showDraftFeedback, setShowDraftFeedback] = useState(false);
   const [images, setImages] = useState<string[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (authLoading) return;
@@ -151,6 +152,44 @@ export default function EditDiary() {
       console.error("Error deleting diary:", error);
       alert("削除に失敗しました。もう一度お試しください。");
       setDeleting(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+    const uploadPreset = "diary-app-unsigned";
+
+    try {
+      const uploadPromises = Array.from(files).map(async (file) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("upload_preset", uploadPreset);
+
+        const response = await fetch(
+          `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`,
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!response.ok) throw new Error("Upload failed");
+        const data = await response.json();
+        return data.secure_url;
+      });
+
+      const newImageUrls = await Promise.all(uploadPromises);
+      setImages((prev) => [...prev, ...newImageUrls]);
+    } catch (error) {
+      console.error("Error uploading images:", error);
+      alert("画像のアップロードに失敗しました。");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
@@ -302,25 +341,28 @@ export default function EditDiary() {
                   className="w-full bg-transparent outline-none text-sm text-foreground placeholder-muted/40"
                 />
 
-                <CldUploadWidget 
-                    uploadPreset="diary-app-unsigned" 
-                    onSuccess={(result: any) => {
-                        if (result.info && typeof result.info !== 'string') {
-                            setImages(prev => [...prev, result.info.secure_url]);
-                        }
-                    }}
+                <input
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  ref={fileInputRef}
+                  onChange={handleImageUpload}
+                />
+                
+                <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 text-primary hover:from-primary hover:to-primary-light hover:text-white transition-all text-xs font-bold shadow-sm border border-primary/10 hover:border-transparent active:scale-95 disabled:opacity-50"
                 >
-                    {({ open }) => (
-                        <button
-                            type="button"
-                            onClick={() => open()}
-                            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-xs font-bold"
-                        >
-                            <ImageIcon className="w-3.5 h-3.5" />
-                            画像
-                        </button>
+                    {isUploading ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                        <ImageIcon className="w-3.5 h-3.5" />
                     )}
-                </CldUploadWidget>
+                    画像を追加
+                </button>
                 
                 {/* Suggestions Dropdown */}
                 {showSuggestions && (
