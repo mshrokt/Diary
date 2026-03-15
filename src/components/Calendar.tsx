@@ -131,7 +131,8 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
               `}
             >
               <span
-                className={`text-sm leading-none ${
+                className={`text-sm leading-none transition-all ${
+                    dayInfo?.hasImage ? "font-extrabold bg-gradient-to-br from-orange-400 to-orange-600 bg-clip-text text-transparent scale-110 drop-shadow-[0_1px_1px_rgba(0,0,0,0.1)]" :
                     isToday && !hasDiary ? "font-bold text-primary" :
                     hasDiary ? "" :
                     isSunday ? "text-red-400/60" :
@@ -141,9 +142,6 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
               >
                 {day}
               </span>
-              {dayInfo?.hasImage && (
-                <div className="absolute inset-0 border border-accent/20 rounded-xl pointer-events-none" />
-              )}
               {isToday && hasDiary && (
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent border-2 border-card rounded-full shadow-sm" />
               )}
