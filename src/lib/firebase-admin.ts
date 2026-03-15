@@ -10,13 +10,19 @@ function getAdminApp() {
   const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
   if (serviceAccountKey) {
-    const serviceAccount: ServiceAccount = JSON.parse(serviceAccountKey);
-    return initializeApp({
-      credential: cert(serviceAccount),
-    });
+    try {
+      console.log("DEBUG: FIREBASE_SERVICE_ACCOUNT_KEY found. Parsing...");
+      const serviceAccount: ServiceAccount = JSON.parse(serviceAccountKey);
+      console.log("DEBUG: Service Account parsed successfully for project:", serviceAccount.projectId);
+      return initializeApp({
+        credential: cert(serviceAccount),
+      });
+    } catch (e: any) {
+      console.error("DEBUG ERROR: Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY:", e.message);
+    }
   }
 
-  // サービスアカウントキーがない場合は、プロジェクトIDだけで初期化（ローカル開発用）
+  console.warn("DEBUG: Initializing Firebase Admin with projectId only (No Service Account Key found)");
   return initializeApp({
     projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
   });
