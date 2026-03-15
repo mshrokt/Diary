@@ -124,35 +124,39 @@ export default function ReadDiary() {
         <div className="space-y-6">
           {diaries.map((diary) => (
             <article key={diary.id} className="bg-card rounded-3xl border border-border shadow-sm p-6 sm:p-8 relative">
-              <div className="absolute top-4 right-4 flex items-center gap-2">
-                <button
-                  onClick={() => handleDelete(diary.id)}
-                  disabled={deletingId === diary.id}
-                  className="flex items-center justify-center p-2 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-200 disabled:opacity-50 active:scale-90 cursor-pointer"
-                  aria-label="日記を削除"
-                >
-                  {deletingId === diary.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
-                </button>
-                <Link
-                  href={`/edit/${diary.id}`}
-                  className="flex items-center justify-center p-2 text-primary hover:bg-primary/10 rounded-xl transition-all duration-200 active:scale-90"
-                  aria-label="日記を編集"
-                >
-                  <PenSquare className="w-4 h-4" />
-                </Link>
-              </div>
-
-              {/* Tags in reader */}
-              {diary.tags && diary.tags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {diary.tags.map(tag => (
-                    <span key={tag} className="flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
-                      <Tag className="w-3 h-3" />
-                      {tag}
-                    </span>
-                  ))}
+              {/* Header with actions - Move to a separate flex container to avoid image overlap */}
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1">
+                  {/* Tags in reader */}
+                  {diary.tags && diary.tags.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {diary.tags.map(tag => (
+                        <span key={tag} className="flex items-center gap-1.5 text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
+                          <Tag className="w-3 h-3" />
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleDelete(diary.id)}
+                    disabled={deletingId === diary.id}
+                    className="flex items-center justify-center p-2 text-red-400 hover:text-red-500 hover:bg-red-500/10 rounded-xl transition-all duration-200 disabled:opacity-50 active:scale-95 cursor-pointer"
+                    aria-label="日記を削除"
+                  >
+                    {deletingId === diary.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                  </button>
+                  <Link
+                    href={`/edit/${diary.id}`}
+                    className="flex items-center justify-center p-2 text-primary hover:bg-primary/10 rounded-xl transition-all duration-200 active:scale-95"
+                    aria-label="日記を編集"
+                  >
+                    <PenSquare className="w-4 h-4" />
+                  </Link>
+                </div>
+              </div>
 
               {/* Images in reader */}
               {diary.images && diary.images.length > 0 && (
@@ -229,21 +233,30 @@ export default function ReadDiary() {
       {/* Lightbox Overlay */}
       {selectedImage && (
         <div 
-          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-lg animate-fade-in p-4 sm:p-10 cursor-zoom-out"
+          className="fixed inset-0 z-[100] flex flex-col bg-black/95 backdrop-blur-xl animate-fade-in cursor-zoom-out"
           onClick={() => setSelectedImage(null)}
         >
-          <button 
-            className="absolute top-6 right-6 p-3 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all active:scale-95"
-            onClick={() => setSelectedImage(null)}
-          >
-            <X className="w-6 h-6" />
-          </button>
+          {/* Lightbox Header */}
+          <div className="flex items-center justify-end p-6 w-full z-10">
+            <button 
+              className="p-4 bg-white/10 hover:bg-white/20 rounded-full text-white transition-all active:scale-90 border border-white/20 shadow-2xl"
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedImage(null);
+              }}
+              aria-label="閉じる"
+            >
+              <X className="w-8 h-8" />
+            </button>
+          </div>
           
-          <div className="relative w-full h-full flex items-center justify-center" onClick={e => e.stopPropagation()}>
+          {/* Image Container */}
+          <div className="flex-1 overflow-hidden flex items-center justify-center p-4 sm:p-10">
             <img 
               src={selectedImage} 
               alt="Full size" 
-              className="max-w-full max-h-full object-contain rounded-lg shadow-2xl animate-scale-up"
+              className="max-w-full max-h-full object-contain rounded-sm shadow-2xl animate-scale-up select-none pointer-events-none"
+              style={{ filter: 'drop-shadow(0 20px 50px rgba(0,0,0,0.5))' }}
             />
           </div>
         </div>

@@ -179,7 +179,9 @@ export default function EditDiary() {
 
         if (!response.ok) throw new Error("Upload failed");
         const data = await response.json();
-        return data.secure_url;
+        // Optimize URL with Cloudinary transformations: auto quality and auto format
+        const optimizedUrl = data.secure_url.replace('/upload/', '/upload/q_auto,f_auto/');
+        return optimizedUrl;
       });
 
       const newImageUrls = await Promise.all(uploadPromises);
@@ -354,14 +356,14 @@ export default function EditDiary() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-gradient-to-br from-primary/10 to-accent/10 text-primary hover:from-primary hover:to-primary-light hover:text-white transition-all text-xs font-bold shadow-sm border border-primary/10 hover:border-transparent active:scale-95 disabled:opacity-50"
+                    className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 text-primary hover:from-primary hover:to-primary-light hover:text-white transition-all text-sm font-bold shadow-sm border border-primary/10 hover:border-transparent active:scale-95 disabled:opacity-50 group"
                 >
                     {isUploading ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
-                        <ImageIcon className="w-3.5 h-3.5" />
+                        <ImageIcon className="w-5 h-5 transition-transform group-hover:scale-110" />
                     )}
-                    画像を追加
+                    画像
                 </button>
                 
                 {/* Suggestions Dropdown */}
