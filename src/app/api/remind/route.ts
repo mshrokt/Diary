@@ -14,8 +14,8 @@ export async function GET(request: Request) {
     // Lazy-load web-push to avoid build-time initialization errors
     const webpush = (await import("web-push")).default;
     
-    const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
-    const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
+    const VAPID_PUBLIC_KEY = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "").trim();
+    const VAPID_PRIVATE_KEY = (process.env.VAPID_PRIVATE_KEY || "").trim();
     
     console.log("DEBUG: Env presence check:", {
       NEXT_PUBLIC_VAPID_PUBLIC_KEY: VAPID_PUBLIC_KEY ? "EXISTS" : "MISSING",
