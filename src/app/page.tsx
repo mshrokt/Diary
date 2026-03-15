@@ -63,6 +63,7 @@ export default function Home() {
     
     // Calculate "One Year Ago" target
     const now = new Date();
+    const thirtyDaysAgo = now.getTime() - (30 * 24 * 60 * 60 * 1000);
     const lyYear = now.getFullYear() - 1;
     const lyMonth = now.getMonth();
     const lyDay = now.getDate();
@@ -106,7 +107,10 @@ export default function Home() {
         "一応", "とりあえず",
       ];
       
+      const isRecent = d.date >= thirtyDaysAgo;
+      
       words.forEach(w => {
+          if (!isRecent) return; // Only count keywords from the last 30 days
           if (stopWords.some(sw => w.includes(sw) || sw.includes(w))) return;
           // Avoid words that end with common verb suffixes if they are hiragana-heavy
           if (w.length <= 3 && /[ぁ-ん]$/.test(w)) return;
