@@ -19,6 +19,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTag, setSelectedTag] = useState<string | null>(null);
+  const [selectedKeyword, setSelectedKeyword] = useState<string | null>(null);
 
   const todayHint = useMemo(() => getDailyHint(new Date()), []);
   const searchParams = useSearchParams();
@@ -110,7 +111,8 @@ export default function Home() {
       // Filter logic
       const matchesSearch = d.content.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesTag = !selectedTag || d.tags?.includes(selectedTag);
-      return matchesSearch && matchesTag;
+      const matchesKeyword = !selectedKeyword || d.content.toLowerCase().includes(selectedKeyword.toLowerCase());
+      return matchesSearch && matchesTag && matchesKeyword;
     });
 
     // Sort tags/keywords by frequency
@@ -127,7 +129,7 @@ export default function Home() {
       topTags: sortedTags,
       actualTags: Array.from(tagSet).sort()
     };
-  }, [diaries, searchQuery, selectedTag]);
+  }, [diaries, searchQuery, selectedTag, selectedKeyword]);
 
   const handleCalendarDateClick = (dateStr: string) => {
     const info = diaryData.get(dateStr);
@@ -260,7 +262,10 @@ export default function Home() {
                 検索・フィルタ結果
               </h1>
               <p className="text-muted text-sm">
-                絞り込み条件に一致する日記を表示しています
+                {selectedTag && `タグ: #${selectedTag} `}
+                {selectedKeyword && `キーワード: ${selectedKeyword} `}
+                {searchQuery && `検索: ${searchQuery} `}
+                に一致する日記を表示しています
               </p>
             </div>
         )}
@@ -306,47 +311,6 @@ export default function Home() {
                         </button>
                     )}
                 </div>
-
-                {/* Tag Chips */}
-                {actualTags.length > 0 && (
-                    <div className="flex flex-col gap-2">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Top Tags</span>
-                            <Link 
-                                href="/tags"
-                                className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
-                            >
-                                <Tag className="w-2.5 h-2.5" />
-                                すべて管理
-                            </Link>
-                        </div>
-                        <div className="flex flex-wrap gap-2 items-center">
-                            {actualTags.slice(0, 8).map(tag => (
-                                <button
-                                    key={tag}
-                                    onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
-                                    className={`
-                                        flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all
-                                        ${selectedTag === tag 
-                                            ? "bg-primary text-white shadow-sm shadow-primary/30" 
-                                            : "bg-surface border border-border text-muted hover:border-primary/40 hover:text-primary"}
-                                    `}
-                                >
-                                    <Tag className="w-3 h-3" />
-                                    {tag}
-                                </button>
-                            ))}
-                            {actualTags.length > 8 && (
-                                <Link 
-                                    href="/tags"
-                                    className="px-3 py-1.5 rounded-xl text-xs font-medium border border-dashed border-border text-muted hover:border-primary/40 hover:text-primary transition-all"
-                                >
-                                    +{actualTags.length - 8} more...
-                                </Link>
-                            )}
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Calendar / Heatmap */}
@@ -355,8 +319,49 @@ export default function Home() {
               onDateClick={handleCalendarDateClick}
             />
 
+            {/* Tag Chips (Moved below Calendar) */}
+            {actualTags.length > 0 && (
+                <div className="flex flex-col gap-2 animate-fade-in">
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Top Tags</span>
+                        <Link 
+                            href="/tags"
+                            className="text-[10px] font-bold text-primary hover:underline flex items-center gap-1"
+                        >
+                            <Tag className="w-2.5 h-2.5" />
+                            すべて管理
+                        </Link>
+                    </div>
+                    <div className="flex flex-wrap gap-2 items-center">
+                        {actualTags.slice(0, 8).map(tag => (
+                            <button
+                                key={tag}
+                                onClick={() => setSelectedTag(selectedTag === tag ? null : tag)}
+                                className={`
+                                    flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all
+                                    ${selectedTag === tag 
+                                        ? "bg-primary text-white shadow-sm shadow-primary/30" 
+                                        : "bg-surface border border-border text-muted hover:border-primary/40 hover:text-primary"}
+                                `}
+                            >
+                                <Tag className="w-3 h-3" />
+                                {tag}
+                            </button>
+                        ))}
+                        {actualTags.length > 8 && (
+                            <Link 
+                                href="/tags"
+                                className="px-3 py-1.5 rounded-xl text-xs font-medium border border-dashed border-border text-muted hover:border-primary/40 hover:text-primary transition-all"
+                            >
+                                +{actualTags.length - 8} more...
+                            </Link>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* Throwback Card */}
-            {lastYearDiary && !searchQuery && !selectedTag && (
+            {lastYearDiary && !searchQuery && !selectedTag && !selectedKeyword && (
               <div className="animate-slide-up">
                 <div className="bg-gradient-to-br from-primary/5 to-accent/5 border border-primary/20 rounded-3xl p-6 relative overflow-hidden group hover:border-primary/40 transition-all">
                   <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-500">
@@ -407,8 +412,8 @@ export default function Home() {
                             <div key={tag.name} className="flex flex-col gap-1">
                                 <span className="text-[10px] font-bold text-muted uppercase tracking-tighter opacity-50">Rank {idx + 1}</span>
                                 <button 
-                                    onClick={() => setSelectedTag(tag.name)}
-                                    className="text-sm font-semibold text-foreground hover:text-primary transition-colors flex items-center gap-1.5"
+                                    onClick={() => setSelectedKeyword(selectedKeyword === tag.name ? null : tag.name)}
+                                    className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${selectedKeyword === tag.name ? "text-primary" : "text-foreground hover:text-primary"}`}
                                 >
                                     {tag.name}
                                     <span className="text-[10px] font-medium bg-surface px-1.5 py-0.5 rounded-md border border-border">
@@ -431,9 +436,9 @@ export default function Home() {
                 <p className="text-muted text-xs max-w-[200px] mx-auto leading-relaxed">
                   キーワードやタグ、もしくは日付を変えてみてください
                 </p>
-                {(searchQuery || selectedTag) && (
+                 {(searchQuery || selectedTag || selectedKeyword) && (
                     <button 
-                        onClick={() => {setSearchQuery(""); setSelectedTag(null);}}
+                        onClick={() => {setSearchQuery(""); setSelectedTag(null); setSelectedKeyword(null);}}
                         className="mt-4 text-xs font-medium text-primary hover:underline"
                     >
                         フィルターをクリア
