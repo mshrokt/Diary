@@ -36,13 +36,15 @@ export const createDiary = async (
   userId: string,
   content: string,
   date: number,
-  tags: string[] = []
+  tags: string[] = [],
+  isDraft: boolean = false
 ): Promise<string> => {
   const newDiary = {
     userId,
     content,
     date,
     tags,
+    isDraft,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -54,7 +56,8 @@ export const updateDiary = async (
   id: string,
   content: string,
   date: number,
-  tags: string[] = []
+  tags: string[] = [],
+  options: { isDraft?: boolean } = {}
 ): Promise<void> => {
   const diaryRef = doc(db, DIARIES_COLLECTION, id);
   const updateData: any = {
@@ -62,8 +65,13 @@ export const updateDiary = async (
     date,
     tags,
     updatedAt: Date.now(),
-    editHistory: arrayUnion(Date.now()),
+    isDraft: !!options.isDraft,
   };
+
+  if (!options.isDraft) {
+    updateData.editHistory = arrayUnion(Date.now());
+  }
+
   await updateDoc(diaryRef, updateData);
 };
 

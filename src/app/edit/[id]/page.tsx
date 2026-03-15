@@ -25,6 +25,8 @@ export default function EditDiary() {
   const [deleting, setDeleting] = useState(false);
   const [allTags, setAllTags] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [draftSaving, setDraftSaving] = useState(false);
+  const [showDraftFeedback, setShowDraftFeedback] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -96,9 +98,9 @@ export default function EditDiary() {
       const finalTimestamp = finalDate.getTime();
 
       if (isNew) {
-        await createDiary(user.uid, content, finalTimestamp, tags);
+        await createDiary(user.uid, content, finalTimestamp, tags, false);
       } else {
-        await updateDiary(idStr, content, finalTimestamp, tags);
+        await updateDiary(idStr, content, finalTimestamp, tags, { isDraft: false });
       }
       router.push("/");
       router.refresh();
@@ -107,6 +109,31 @@ export default function EditDiary() {
       alert(`保存に失敗しました。(${error.message || '接続エラー'})`);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDraftSave = async () => {
+    if (!user || !content.trim()) return;
+    setDraftSaving(true);
+    const tags = Array.from(new Set(tagsInput.split(/\s+/).filter(t => t.trim() !== "")));
+
+    try {
+      if (isNew) {
+        // Use original date (from picker), don't update to current time
+        const newId = await createDiary(user.uid, content, date, tags, true);
+        // Replace current URL with the new ID so it's no longer "new"
+        router.replace(`/edit/${newId}`);
+      } else {
+        // Update with isDraft: true to skip editHistory updates
+        await updateDiary(idStr, content, date, tags, { isDraft: true });
+      }
+      setShowDraftFeedback(true);
+      setTimeout(() => setShowDraftFeedback(false), 2000);
+    } catch (error: any) {
+      console.error("Error draft saving diary:", error);
+      alert(`一時保存に失敗しました。`);
+    } finally {
+      setDraftSaving(false);
     }
   };
 
@@ -169,19 +196,32 @@ export default function EditDiary() {
               </button>
             )}
             <button
+              onClick={handleDraftSave}
+              disabled={draftSaving || saving || !content.trim()}
+              className="flex items-center gap-2 bg-surface border border-border text-foreground px-4 py-2.5 rounded-2xl font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed hover:bg-surface/80 active:scale-[0.97] cursor-pointer"
+            >
+               {draftSaving ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : showDraftFeedback ? (
+                <span className="text-primary font-bold">下書き保存中...</span>
+              ) : (
+                <span>下書き保存</span>
+              )}
+            </button>
+            <button
               onClick={handleSave}
-              disabled={saving || !content.trim()}
+              disabled={saving || draftSaving || !content.trim()}
               className="flex items-center gap-2 bg-gradient-to-r from-primary to-primary-light text-white px-5 py-2.5 rounded-2xl font-medium text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:opacity-90 active:scale-[0.97] btn-glow cursor-pointer"
             >
               {saving ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>保存中...</span>
+                  <span>投稿中...</span>
                 </>
               ) : (
                 <>
                   <Save className="w-4 h-4" />
-                  <span>保存</span>
+                  <span>投稿する</span>
                 </>
               )}
             </button>

@@ -8,4 +8,5 @@ export interface Diary {
   createdAt: number;
   updatedAt: number;
   editHistory?: number[];
+  isDraft?: boolean;
 }

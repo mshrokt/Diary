@@ -502,7 +502,12 @@ export default function Home() {
                                 {/* Content preview */}
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm text-foreground line-clamp-2 leading-relaxed mb-2">
-                                    {diary.content}
+                                        {diary.isDraft && (
+                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 mr-2 border border-amber-200/50 dark:border-amber-700/30">
+                                                下書き
+                                            </span>
+                                        )}
+                                        {diary.content}
                                     </p>
                                     
                                     {/* Tags in card */}
