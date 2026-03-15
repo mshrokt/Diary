@@ -132,7 +132,7 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
             >
               <span
                 className={`text-sm leading-none transition-all ${
-                    dayInfo?.hasImage ? "font-semibold bg-gradient-to-br from-orange-300 to-orange-500 bg-clip-text text-transparent" :
+                    dayInfo?.hasImage ? "font-bold bg-gradient-to-br from-amber-200 to-orange-300 bg-clip-text text-transparent" :
                     isToday && !hasDiary ? "font-bold text-primary" :
                     hasDiary ? "" :
                     isSunday ? "text-red-400/60" :
