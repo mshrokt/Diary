@@ -58,20 +58,17 @@ export default function Home() {
     }
   }, [user]);
 
-  const { filteredDiaries, diaryData, allTags, lastYearDiary, topTags, actualTags } = useMemo<{
-    filteredDiaries: Diary[];
-    diaryData: Map<string, { intensity: number; id: string; preview: string; hasImage: boolean }>;
-    allTags: string[];
-    lastYearDiary: Diary | null;
+  // 1. Calculate global stats and keywords (unfiltered)
+  const { topTags, actualTags, diaryData, lyFound } = useMemo<{
     topTags: { name: string; count: number }[];
     actualTags: string[];
+    diaryData: Map<string, { intensity: number; id: string; preview: string; hasImage: boolean }>;
+    lyFound: Diary | null;
   }>(() => {
     const dataMap = new Map<string, { intensity: number; id: string; preview: string; hasImage: boolean }>();
     const tagSet = new Set<string>();
     const tagCounts: Record<string, number> = {};
-    const filtered: Diary[] = [];
     
-    // Calculate "One Year Ago" target
     const now = new Date();
     const thirtyDaysAgo = now.getTime() - (30 * 24 * 60 * 60 * 1000);
     const lyYear = now.getFullYear() - 1;
@@ -79,74 +76,72 @@ export default function Home() {
     const lyDay = now.getDate();
     let lyFound: Diary | null = null;
 
-    // 0. Sort all diaries by "Activity Order" (createdAt || date) desc
-    const sortedAll = [...diaries].sort((a, b) => (b.createdAt || b.date) - (a.createdAt || a.date));
-
-    // Performance Optimization: Cache lowercase search query
-    const lowerQuery = searchQuery.toLowerCase();
-
-    sortedAll.forEach((d) => {
-      // 1. Collect tags and count frequencies
+    diaries.forEach((d) => {
+      // Tags
       d.tags?.forEach(t => {
         tagSet.add(t);
         tagCounts[t] = (tagCounts[t] || 0) + 1;
       });
 
-      // 2. Simple keyword extraction (Only if NOT searching, to keep filtering light)
-      if (!lowerQuery && !selectedTag && !selectedKeyword) {
-          const words = d.content.match(/([一-龠]{2,}|[ァ-ヶ]{2,}|[ぁ-ん]{3,}|[a-zA-Z]{3,})/g) || [];
-          const isRecent = d.date >= thirtyDaysAgo;
-          if (isRecent) {
-              const stopWords = ["から", "ので", "した", "です", "ます", "など", "こと", "もの", "ため", "よう", "みたい", "感じ", "思い", "書い", "でした", "される", "てい", "ところ", "という", "そして", "しかし", "だった", "なくて", "けれど", "ななめ", "あした", "きょう", "昨日", "本当", "結構", "普通", "最近", "今日", "明日", "自分", "全然", "絶対", "多分", "やっぱり", "やはり", "すごい", "すごく", "とても", "かなり", "ちょっと", "少し", "たくさん", "いろいろ", "やっぱ", "めっちゃ", "まあまあ", "思う", "考える", "行った", "行く", "来た", "見た", "見る", "食べた", "食べる", "出来", "出来る", "出た", "入った", "知った", "言った", "言う", "使った", "使う", "始めた", "終わった", "続けた", "帰った", "帰る", "買った", "作った", "持った", "なった", "なる", "ある", "いる", "する", "できる", "やる", "もらう", "くれる", "時間", "今回", "前回", "部分", "場所", "意味", "理由", "結果", "状態", "状況", "方法", "問題", "関係", "必要", "可能", "大丈夫", "大変", "一番", "最初", "最後", "気持ち", "程度", "以上", "以下", "以前", "以降", "途中", "毎日", "毎回", "今年", "去年", "来年", "今月", "先月", "来月", "今週", "先週", "来週", "午前", "午後", "夕方", "朝方", "日中", "それ", "これ", "あれ", "ここ", "そこ", "あそこ", "どこ", "その", "この", "あの", "どの", "そう", "こう", "ああ", "どう", "だから", "それで", "でも", "けど", "ただ", "また", "もう", "まだ", "ずっと", "一応", "とりあえず"];
-              words.forEach(w => {
-                  if (stopWords.some(sw => w.includes(sw) || sw.includes(w))) return;
-                  if (w.length <= 3 && /[ぁ-ん]$/.test(w)) return;
-                  tagCounts[w] = (tagCounts[w] || 0) + 0.5;
-              });
-          }
+      // Keywords (Always extract from all diaries for stable UI)
+      const words = d.content.match(/([一-龠]{2,}|[ァ-ヶ]{2,}|[ぁ-ん]{3,}|[a-zA-Z]{3,})/g) || [];
+      const isRecent = d.date >= thirtyDaysAgo;
+      if (isRecent) {
+          const stopWords = ["から", "ので", "した", "です", "ます", "など", "こと", "もの", "ため", "よう", "みたい", "感じ", "思い", "書い", "でした", "される", "てい", "ところ", "という", "そして", "しかし", "だった", "なくて", "けれど", "ななめ", "あした", "きょう", "昨日", "本当", "結構", "普通", "最近", "今日", "明日", "自分", "全然", "絶対", "多分", "やっぱり", "やはり", "すごい", "すごく", "とても", "かなり", "ちょっと", "少し", "たくさん", "いろいろ", "やっぱ", "めっちゃ", "まあまあ", "思う", "考える", "行った", "行く", "来た", "見た", "見る", "食べた", "食べる", "出来", "出来る", "出た", "入った", "知った", "言った", "言う", "使った", "使う", "始めた", "終わった", "続けた", "帰った", "帰える", "買った", "作った", "持った", "なった", "なる", "ある", "いる", "する", "できる", "やる", "もらう", "くれる", "時間", "今回", "前回", "部分", "場所", "意味", "理由", "結果", "状態", "状況", "方法", "問題", "関係", "必要", "可能", "大丈夫", "大変", "一番", "最初", "最後", "気持ち", "程度", "以上", "以下", "以前", "以降", "途中", "毎日", "毎回", "今年", "去年", "来年", "今月", "先月", "来月", "今週", "先週", "来週", "午前", "午後", "夕方", "朝方", "日中", "それ", "これ", "あれ", "ここ", "そこ", "あそこ", "どこ", "その", "この", "あの", "どの", "そう", "こう", "ああ", "どう", "だから", "それで", "でも", "けど", "ただ", "また", "もう", "まだ", "ずっと", "一応", "とりあえず"];
+          words.forEach(w => {
+              if (stopWords.some(sw => w.includes(sw) || sw.includes(w))) return;
+              if (w.length <= 3 && /[ぁ-ん]$/.test(w)) return;
+              tagCounts[w] = (tagCounts[w] || 0) + 0.3;
+          });
       }
 
-      // 3. Build calendar data
       const dt = new Date(d.date);
-      const isLastYearToday = dt.getFullYear() === lyYear && dt.getMonth() === lyMonth && dt.getDate() === lyDay;
-      if (isLastYearToday) lyFound = d;
-
+      if (dt.getFullYear() === lyYear && dt.getMonth() === lyMonth && dt.getDate() === lyDay) {
+        lyFound = d;
+      }
+      
       const dateStr = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
       const current = dataMap.get(dateStr) || { intensity: 0, id: d.id!, preview: "", hasImage: false };
-      const contentPreview = d.content.length > 40 ? d.content.substring(0, 40) + "..." : d.content;
-      
+      const contentPreview = d.content.substring(0, 40) + (d.content.length > 40 ? "..." : "");
       dataMap.set(dateStr, {
         intensity: current.intensity + d.content.length,
         id: d.id!,
         preview: current.preview ? current.preview + "\n---\n" + contentPreview : contentPreview,
         hasImage: !!current.hasImage || !!(d.images && d.images.length > 0),
       });
-
-      // 4. Filter logic
-      const contentLower = d.content.toLowerCase();
-      const matchesSearch = contentLower.includes(lowerQuery);
-      const matchesTag = !selectedTag || d.tags?.includes(selectedTag);
-      const matchesKeyword = !selectedKeyword || contentLower.includes(selectedKeyword.toLowerCase());
-      if (matchesSearch && matchesTag && matchesKeyword) {
-          filtered.push(d);
-      }
     });
 
-    // Sort tags/keywords by frequency
     const sortedTags = Object.entries(tagCounts)
-      .map(([name, count]) => ({ name, count }))
+      .map(([name, count]) => ({ name, count: Math.ceil(count) }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 5);
 
-    return {
-      filteredDiaries: filtered,
-      diaryData: dataMap,
-      allTags: Array.from(tagSet).sort(),
-      lastYearDiary: lyFound,
-      topTags: sortedTags,
-      actualTags: Array.from(tagSet).sort()
+    return { 
+      topTags: sortedTags, 
+      actualTags: Array.from(tagSet).sort(), 
+      diaryData: dataMap, 
+      lyFound 
     };
+  }, [diaries]);
+
+  // 2. Filter diaries
+  const filteredDiaries = useMemo(() => {
+    const lowerQuery = searchQuery.toLowerCase();
+    const lowerKeyword = selectedKeyword?.toLowerCase();
+
+    return [...diaries]
+      .filter((d) => {
+        const contentLower = d.content.toLowerCase();
+        const matchesSearch = contentLower.includes(lowerQuery);
+        const matchesTag = !selectedTag || d.tags?.includes(selectedTag);
+        const matchesKeyword = !lowerKeyword || contentLower.includes(lowerKeyword);
+        return matchesSearch && matchesTag && matchesKeyword;
+      })
+      .sort((a, b) => (b.createdAt || b.date) - (a.createdAt || a.date));
   }, [diaries, searchQuery, selectedTag, selectedKeyword]);
+
+  const lastYearDiary = lyFound;
+  const allTags = actualTags;
 
   const handleCalendarDateClick = (dateStr: string) => {
     const info = diaryData.get(dateStr);
@@ -418,19 +413,29 @@ export default function Home() {
             )}
 
             {/* Keyword / Interests Section */}
-            {topTags.length > 0 && !searchQuery && !selectedTag && !selectedKeyword && (
+            {topTags.length > 0 && (
                 <div className="flex flex-col gap-2 animate-fade-in">
-                    <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Interests</span>
+                    <div className="flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Interests</span>
+                        {(searchQuery || selectedTag || selectedKeyword) && (
+                            <button 
+                                onClick={() => {setSearchQuery(""); setSelectedTag(null); setSelectedKeyword(null);}}
+                                className="text-[10px] font-bold text-primary hover:underline uppercase tracking-widest bg-primary/5 px-2 py-0.5 rounded-full"
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
                     <div className="flex flex-wrap gap-x-6 gap-y-4 px-2">
                         {topTags.map((tag, idx) => (
                             <div key={tag.name} className="flex flex-col gap-1">
                                 <span className="text-[10px] font-bold text-muted uppercase tracking-tighter opacity-50">Rank {idx + 1}</span>
                                 <button 
                                     onClick={() => setSelectedKeyword(selectedKeyword === tag.name ? null : tag.name)}
-                                    className={`text-sm font-semibold transition-colors flex items-center gap-1.5 ${selectedKeyword === tag.name ? "text-primary" : "text-foreground hover:text-primary"}`}
+                                    className={`text-sm font-semibold transition-all flex items-center gap-1.5 px-2 py-1 rounded-xl -ml-2 ${selectedKeyword === tag.name ? "text-primary bg-primary/10 shadow-sm" : "text-foreground hover:text-primary hover:bg-surface"}`}
                                 >
                                     {tag.name}
-                                    <span className="text-[10px] font-medium bg-surface px-1.5 py-0.5 rounded-md border border-border">
+                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md border ${selectedKeyword === tag.name ? "bg-primary text-white border-primary" : "bg-surface border-border"}`}>
                                         {tag.count}
                                     </span>
                                 </button>
@@ -464,11 +469,18 @@ export default function Home() {
                 <h2 className="text-sm font-semibold text-muted mb-3 flex items-center justify-between">
                   <span className="flex items-center gap-2">
                     <CalendarIcon className="w-3.5 h-3.5" />
-                    {searchQuery || selectedTag ? "検索結果" : "最近の日記"}
+                    {searchQuery || selectedTag || selectedKeyword ? "検索結果" : "最近の日記"}
                   </span>
-                  <span className="text-[10px] font-medium bg-surface px-2 py-0.5 rounded-full border border-border">
-                    {filteredDiaries.length}件
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {selectedKeyword && (
+                        <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-lg border border-primary/20">
+                            "{selectedKeyword}"
+                        </span>
+                    )}
+                    <span className="text-[10px] font-medium bg-surface px-2 py-0.5 rounded-full border border-border">
+                        {filteredDiaries.length}件
+                    </span>
+                  </div>
                 </h2>
                 <div className="space-y-4">
                   {filteredDiaries.map((diary, index) => {
