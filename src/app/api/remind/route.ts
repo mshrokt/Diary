@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { getSubscriptions, getDiaries } from "@/lib/db";
+import { adminDb } from "@/lib/firebase-admin";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 30; // 最大30秒
 
 export async function GET(request: Request) {
   // Check for authorization (Vercel Cron sends a specific header)
@@ -13,17 +14,13 @@ export async function GET(request: Request) {
   try {
     // Lazy-load web-push to avoid build-time initialization errors
     const webpush = (await import("web-push")).default;
-    console.log("DEBUG: Firebase Project ID:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
     
     const VAPID_PUBLIC_KEY = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "").trim();
     const VAPID_PRIVATE_KEY = (process.env.VAPID_PRIVATE_KEY || "").trim();
     
-    console.log("DEBUG: Env presence check:", {
-      NEXT_PUBLIC_VAPID_PUBLIC_KEY: VAPID_PUBLIC_KEY ? "EXISTS" : "MISSING",
-      NEXT_PUBLIC_VAPID_PUBLIC_KEY_LEN: VAPID_PUBLIC_KEY.length,
-      VAPID_PRIVATE_KEY: VAPID_PRIVATE_KEY ? "EXISTS" : "MISSING",
-      VAPID_PRIVATE_KEY_LEN: VAPID_PRIVATE_KEY.length,
-      NODE_ENV: process.env.NODE_ENV
+    console.log("DEBUG: VAPID keys check:", {
+      publicLen: VAPID_PUBLIC_KEY.length,
+      privateLen: VAPID_PRIVATE_KEY.length,
     });
 
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
@@ -36,24 +33,12 @@ export async function GET(request: Request) {
       VAPID_PRIVATE_KEY
     );
 
-    console.log("DEBUG: Fetching subscriptions...");
-    let subscriptions: any[] = [];
-    try {
-      // 10秒でタイムアウトさせる
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Firestore query timeout")), 10000)
-      );
-      
-      subscriptions = await Promise.race([
-        getSubscriptions(),
-        timeoutPromise
-      ]) as any[];
-      
-      console.log(`DEBUG: Found ${subscriptions.length} subscriptions`);
-    } catch (dbErr: any) {
-      console.error("DEBUG ERROR: Failed to get subscriptions from Firestore:", dbErr.message || dbErr);
-      return NextResponse.json({ success: false, error: dbErr.message || "DB Error" }, { status: 500 });
-    }
+    // Firebase Admin SDK でサブスクリプションを取得
+    console.log("DEBUG: Fetching subscriptions via Admin SDK...");
+    const subsSnapshot = await adminDb.collection("subscriptions").get();
+    const subscriptions = subsSnapshot.docs.map(doc => doc.data());
+    console.log(`DEBUG: Found ${subscriptions.length} subscriptions`);
+
     const results = { sent: 0, skipped: 0, errors: 0 };
 
     // Group subscriptions by user to avoid redundant diary checks
@@ -72,16 +57,26 @@ export async function GET(request: Request) {
     console.log(`DEBUG: Processing ${userMap.size} unique users`);
 
     for (const [userId, userSubs] of userMap.entries()) {
-      const diaries = await getDiaries(userId);
+      // Firebase Admin SDK でユーザーの日記を取得
+      const diariesSnapshot = await adminDb
+        .collection("diaries")
+        .where("userId", "==", userId)
+        .orderBy("date", "desc")
+        .limit(10) // 最近10件だけチェック
+        .get();
+      
+      const diaries = diariesSnapshot.docs.map(doc => doc.data());
+      
       const hasEntryToday = diaries.some(d => {
         const dDate = new Date(d.date + (9 * 60 * 60 * 1000));
         return dDate.toISOString().split("T")[0] === todayStr;
       });
 
+      console.log(`DEBUG: User ${userId} hasEntryToday=${hasEntryToday}, diaries=${diaries.length}`);
+
       if (!hasEntryToday) {
         for (const sub of userSubs) {
           try {
-            console.log(`DEBUG: Attempting to send to user ${userId}...`);
             await webpush.sendNotification(
               sub,
               JSON.stringify({
@@ -92,8 +87,8 @@ export async function GET(request: Request) {
             );
             console.log(`DEBUG: Successfully sent to ${userId}`);
             results.sent++;
-          } catch (error) {
-            console.error(`DEBUG ERROR: Failed to send to user ${userId}:`, error);
+          } catch (error: any) {
+            console.error(`DEBUG ERROR: Failed to send to user ${userId}:`, error.message || error);
             results.errors++;
           }
         }
@@ -102,9 +97,10 @@ export async function GET(request: Request) {
       }
     }
 
+    console.log("DEBUG: Final results:", results);
     return NextResponse.json({ success: true, results });
-  } catch (error) {
-    console.error("Reminder cron error:", error);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+  } catch (error: any) {
+    console.error("Reminder cron error:", error.message || error);
+    return NextResponse.json({ success: false, error: error.message || "Internal Server Error" }, { status: 500 });
   }
 }
