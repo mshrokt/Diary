@@ -82,7 +82,7 @@ export const updateDiary = async (
     updateData.images = images;
   }
 
-  if (!options.isDraft) {
+  if (!options.isDraft && !options.setCreatedAt) {
     updateData.editHistory = arrayUnion(Date.now());
   }
 
