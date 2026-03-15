@@ -426,20 +426,24 @@ export default function Home() {
                             </button>
                         )}
                     </div>
-                    <div className="flex flex-wrap gap-x-6 gap-y-4 px-2">
-                        {topTags.map((tag, idx) => (
-                            <div key={tag.name} className="flex flex-col gap-1">
-                                <span className="text-[10px] font-bold text-muted uppercase tracking-tighter opacity-50">Rank {idx + 1}</span>
-                                <button 
-                                    onClick={() => setSelectedKeyword(selectedKeyword === tag.name ? null : tag.name)}
-                                    className={`text-sm font-semibold transition-all flex items-center gap-1.5 px-2 py-1 rounded-xl -ml-2 ${selectedKeyword === tag.name ? "text-primary bg-primary/10 shadow-sm" : "text-foreground hover:text-primary hover:bg-surface"}`}
-                                >
-                                    {tag.name}
-                                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md border ${selectedKeyword === tag.name ? "bg-primary text-white border-primary" : "bg-surface border-border"}`}>
-                                        {tag.count}
-                                    </span>
-                                </button>
-                            </div>
+                    <div className="flex flex-wrap gap-2 px-2">
+                        {topTags.map((tag) => (
+                            <button 
+                                key={tag.name}
+                                onClick={() => setSelectedKeyword(selectedKeyword === tag.name ? null : tag.name)}
+                                className={`
+                                    flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-all
+                                    ${selectedKeyword === tag.name 
+                                        ? "bg-primary text-white shadow-sm shadow-primary/30" 
+                                        : "bg-surface border border-border text-muted hover:border-primary/40 hover:text-primary"}
+                                `}
+                            >
+                                <Sparkles className={`w-3 h-3 ${selectedKeyword === tag.name ? "text-white" : "text-primary/60"}`} />
+                                {tag.name}
+                                <span className={`text-[9px] font-bold px-1 rounded-md ${selectedKeyword === tag.name ? "bg-white/20" : "bg-primary/5 text-primary/60"}`}>
+                                    {tag.count}
+                                </span>
+                            </button>
                         ))}
                     </div>
                 </div>
