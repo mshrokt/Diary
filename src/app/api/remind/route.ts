@@ -39,7 +39,7 @@ export async function GET(request: Request) {
     const userMap = new Map<string, any[]>();
     subscriptions.forEach(sub => {
       const subs = userMap.get(sub.userId) || [];
-      subs.push(sub.subscription);
+      subs.push(sub); // Store full document to have access to endpoint for deletion
       userMap.set(sub.userId, subs);
     });
 
@@ -66,11 +66,11 @@ export async function GET(request: Request) {
 
       if (!hasEntryToday) {
         console.log(`DEBUG: User ${userId} has no entry for today. Sending notification...`);
-        for (const sub of userSubs) {
+        for (const subDoc of userSubs) {
           try {
-            console.log(`DEBUG: Sending to endpoint: ${sub.endpoint}`);
+            console.log(`DEBUG: Sending to endpoint: ${subDoc.endpoint}`);
             await webpush.sendNotification(
-              sub,
+              subDoc.subscription,
               JSON.stringify({
                 title: "My Diary",
                 body: "今日のできごとを記録しませんか？",
@@ -84,11 +84,28 @@ export async function GET(request: Request) {
             results.sent++;
             console.log(`DEBUG: Successfully sent to user ${userId}`);
           } catch (error: any) {
-            console.error(`DEBUG ERROR: Failed to send to user ${userId}:`, error.message || error);
+            console.error(`DEBUG ERROR: Failed to send to user ${userId}:`, error.statusCode, error.message || error);
+            
+            // Auto-cleanup for stale/invalid subscriptions (410 Gone or 404 Not Found)
+            if (error.statusCode === 410 || error.statusCode === 404) {
+              console.log(`DEBUG: Cleaning up stale subscription for endpoint: ${subDoc.endpoint}`);
+              try {
+                const subSnapshot = await adminDb.collection("subscriptions")
+                  .where("userId", "==", userId)
+                  .where("endpoint", "==", subDoc.endpoint)
+                  .get();
+                
+                const deletePromises = subSnapshot.docs.map(doc => doc.ref.delete());
+                await Promise.all(deletePromises);
+              } catch (dbError) {
+                console.error("DEBUG ERROR: Database cleanup failed:", dbError);
+              }
+            }
             results.errors++;
           }
         }
-      } else {
+      }
+ else {
         console.log(`DEBUG: User ${userId} already has an entry for today. Skipping.`);
         results.skipped += userSubs.length;
       }

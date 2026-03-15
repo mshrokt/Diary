@@ -39,17 +39,6 @@ self.addEventListener("push", (event) => {
     }
   }
 
-  // Broadcast to all windows to show in the debug console
-  self.clients.matchAll().then(clients => {
-    clients.forEach(client => {
-      client.postMessage({
-        type: "PUSH_RECEIVED",
-        timestamp: new Date().toISOString(),
-        data: data
-      });
-    });
-  });
-
   const title = data.title || "My Diary";
   const options = {
     body: data.body || "今日のできごとを記録しませんか？",

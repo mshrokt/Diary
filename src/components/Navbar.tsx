@@ -26,17 +26,7 @@ export default function Navbar() {
   const [notificationStatus, setNotificationStatus] = useState<"default" | "granted" | "denied" | "unsupported">("default");
   const [isSubscribed, setIsSubscribed] = useState(false);
 
-  const [debugLog, setDebugLog] = useState<string[]>([]);
-
   useEffect(() => {
-    // Listen for messages from Service Worker
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data?.type === "PUSH_RECEIVED") {
-        setDebugLog(prev => [...prev, `Push Received: ${new Date().toLocaleTimeString()}`]);
-      }
-    };
-    navigator.serviceWorker.addEventListener("message", handleMessage);
-
     const isDarkStored = localStorage.getItem("theme") === "dark";
     if (isDarkStored) {
       document.documentElement.classList.add("dark");
@@ -56,7 +46,6 @@ export default function Navbar() {
         });
       }
     }
-    return () => navigator.serviceWorker.removeEventListener("message", handleMessage);
   }, []);
 
   const toggleTheme = () => {
@@ -96,9 +85,6 @@ export default function Navbar() {
           return;
         }
 
-        // Clear existing subscriptions for this user to avoid stale data
-        await deleteSubscription(user.uid);
-        
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
@@ -152,20 +138,6 @@ export default function Navbar() {
                   <BellOff className="w-[18px] h-[18px]" />
                 )}
               </button>
-              {isSubscribed && (
-                <button
-                  onClick={async () => {
-                    const reg = await navigator.serviceWorker.ready;
-                    reg.showNotification("テスト通知", {
-                      body: "これが表示されれば、端末の設定はOKです！",
-                      icon: "/icon-192x192.png"
-                    });
-                  }}
-                  className="text-[10px] font-bold px-2 py-1 bg-gray-100 rounded-md text-gray-500 hover:bg-gray-200 transition-colors"
-                >
-                  TEST
-                </button>
-              )}
             </div>
           )}
           <button
@@ -190,13 +162,6 @@ export default function Navbar() {
           )}
         </div>
       </div>
-      {/* Debug Logs */}
-      {debugLog.length > 0 && (
-        <div className="bg-yellow-100 dark:bg-yellow-900/30 text-[10px] py-1 px-5 flex flex-wrap gap-2 border-t border-yellow-200 dark:border-yellow-800">
-          <span className="font-bold flex items-center gap-1">DEBUG MONITOR:</span>
-          {debugLog.map((log, i) => <span key={i} className="bg-white/50 dark:bg-black/20 rounded px-1 animate-pulse">{log}</span>)}
-        </div>
-      )}
     </nav>
   );
 }
