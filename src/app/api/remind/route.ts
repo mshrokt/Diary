@@ -17,8 +17,15 @@ export async function GET(request: Request) {
     const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "";
     const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
     
+    console.log("DEBUG: Env presence check:", {
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: VAPID_PUBLIC_KEY ? "EXISTS" : "MISSING",
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY_LEN: VAPID_PUBLIC_KEY.length,
+      VAPID_PRIVATE_KEY: VAPID_PRIVATE_KEY ? "EXISTS" : "MISSING",
+      VAPID_PRIVATE_KEY_LEN: VAPID_PRIVATE_KEY.length,
+      NODE_ENV: process.env.NODE_ENV
+    });
+
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-      console.error("DEBUG: VAPID keys missing. Public Length:", VAPID_PUBLIC_KEY.length);
       return NextResponse.json({ success: false, error: "VAPID keys not configured" }, { status: 500 });
     }
     
