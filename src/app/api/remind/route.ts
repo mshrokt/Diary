@@ -13,6 +13,7 @@ export async function GET(request: Request) {
   try {
     // Lazy-load web-push to avoid build-time initialization errors
     const webpush = (await import("web-push")).default;
+    console.log("DEBUG: Firebase Project ID:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
     
     const VAPID_PUBLIC_KEY = (process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || "").trim();
     const VAPID_PRIVATE_KEY = (process.env.VAPID_PRIVATE_KEY || "").trim();
@@ -36,8 +37,14 @@ export async function GET(request: Request) {
     );
 
     console.log("DEBUG: Fetching subscriptions...");
-    const subscriptions: any[] = await getSubscriptions();
-    console.log(`DEBUG: Found ${subscriptions.length} subscriptions`);
+    let subscriptions: any[] = [];
+    try {
+      subscriptions = await getSubscriptions();
+      console.log(`DEBUG: Found ${subscriptions.length} subscriptions`);
+    } catch (dbErr) {
+      console.error("DEBUG ERROR: Failed to get subscriptions from Firestore:", dbErr);
+      throw dbErr;
+    }
     const results = { sent: 0, skipped: 0, errors: 0 };
 
     // Group subscriptions by user to avoid redundant diary checks
