@@ -18,6 +18,7 @@ export async function GET(request: Request) {
     const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || "";
     
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      console.error("DEBUG: VAPID keys missing. Public Length:", VAPID_PUBLIC_KEY.length);
       return NextResponse.json({ success: false, error: "VAPID keys not configured" }, { status: 500 });
     }
     
@@ -27,7 +28,9 @@ export async function GET(request: Request) {
       VAPID_PRIVATE_KEY
     );
 
+    console.log("DEBUG: Fetching subscriptions...");
     const subscriptions: any[] = await getSubscriptions();
+    console.log(`DEBUG: Found ${subscriptions.length} subscriptions`);
     const results = { sent: 0, skipped: 0, errors: 0 };
 
     // Group subscriptions by user to avoid redundant diary checks
@@ -42,6 +45,8 @@ export async function GET(request: Request) {
     const now = new Date();
     const jstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
     const todayStr = jstNow.toISOString().split("T")[0];
+    console.log("DEBUG: Today (JST):", todayStr);
+    console.log(`DEBUG: Processing ${userMap.size} unique users`);
 
     for (const [userId, userSubs] of userMap.entries()) {
       const diaries = await getDiaries(userId);
@@ -53,6 +58,7 @@ export async function GET(request: Request) {
       if (!hasEntryToday) {
         for (const sub of userSubs) {
           try {
+            console.log(`DEBUG: Attempting to send to user ${userId}...`);
             await webpush.sendNotification(
               sub,
               JSON.stringify({
@@ -61,9 +67,10 @@ export async function GET(request: Request) {
                 url: "/edit/new"
               })
             );
+            console.log(`DEBUG: Successfully sent to ${userId}`);
             results.sent++;
           } catch (error) {
-            console.error(`Failed to send to user ${userId}:`, error);
+            console.error(`DEBUG ERROR: Failed to send to user ${userId}:`, error);
             results.errors++;
           }
         }
