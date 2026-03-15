@@ -356,12 +356,12 @@ export default function EditDiary() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="flex flex-row items-center gap-2 px-4 py-2.5 rounded-2xl bg-surface border border-border text-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-primary transition-all text-sm font-bold shadow-sm active:scale-95 disabled:opacity-50 group shrink-0"
+                    className="flex flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface border border-border text-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-primary transition-all text-xs font-bold shadow-sm active:scale-95 disabled:opacity-50 group shrink-0"
                 >
                     {isUploading ? (
-                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
                     ) : (
-                        <ImageIcon className="w-4 h-4 text-primary transition-transform group-hover:scale-110" />
+                        <ImageIcon className="w-3.5 h-3.5 text-primary transition-transform group-hover:scale-110" />
                     )}
                     <span>画像</span>
                 </button>

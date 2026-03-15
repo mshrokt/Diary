@@ -142,9 +142,12 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
                 {day}
               </span>
               {dayInfo?.hasImage && (
-                <div className="absolute top-1 left-1 pointer-events-none">
-                    <ImageIcon className={`w-2.5 h-2.5 ${(dayInfo?.intensity ?? 0) >= 500 ? 'text-white/80' : 'text-primary/60'}`} />
-                </div>
+                <>
+                    {/* Subtle corner highlight */}
+                    <div className="absolute top-0 left-0 w-2.5 h-2.5 border-t-2 border-l-2 border-accent/60 rounded-tl-[6px] pointer-events-none" />
+                    {/* Glowing bottom indicator */}
+                    <div className="absolute bottom-1 w-1 h-1 bg-accent rounded-full shadow-[0_0_8px_rgba(245,158,11,0.8)] pointer-events-none" />
+                </>
               )}
               {isToday && hasDiary && (
                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-accent border-2 border-card rounded-full shadow-sm" />
