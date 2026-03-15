@@ -7,4 +7,5 @@ export interface Diary {
   keywords?: string[];
   createdAt: number;
   updatedAt: number;
+  editHistory?: number[];
 }

@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { getDiaries, deleteDiary } from "@/lib/db";
 import { Diary } from "@/types/diary";
-import { ArrowLeft, PenSquare, Trash2, Calendar, Loader2, Tag } from "lucide-react";
+import { ArrowLeft, PenSquare, Trash2, Calendar, Loader2, Tag, History } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 
@@ -167,13 +167,35 @@ export default function ReadDiary() {
               </div>
 
               {/* Footer info */}
-              <div className="mt-8 pt-4 border-t border-border flex items-center justify-between">
-                <span className="text-xs text-muted">
-                  {diary.content.length} 文字
-                </span>
-                <span className="text-xs text-muted">
-                  投稿時間: {new Date(diary.date).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" })}
-                </span>
+              <div className="mt-8 pt-4 border-t border-border space-y-2">
+                <div className="flex items-center justify-between text-[10px] font-bold text-muted uppercase tracking-widest">
+                  <span>{diary.content.length} 文字</span>
+                  <span>
+                    投稿: {(() => {
+                      const d = new Date(diary.date);
+                      return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                    })()}
+                  </span>
+                </div>
+                {diary.editHistory && diary.editHistory.length > 0 && (
+                  <div className="bg-surface/50 rounded-xl p-3 border border-border/50">
+                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted uppercase tracking-tighter mb-2">
+                      <History className="w-3 h-3 text-accent" />
+                      編集履歴
+                    </div>
+                    <div className="space-y-1">
+                      {diary.editHistory.map((ts, idx) => {
+                        const d = new Date(ts);
+                        return (
+                          <div key={idx} className="text-[10px] text-muted/70 flex justify-between">
+                            <span>編集 {idx + 1}</span>
+                            <span>{d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </article>
           ))}

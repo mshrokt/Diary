@@ -10,6 +10,7 @@ import {
   where,
   orderBy,
   Timestamp,
+  arrayUnion,
 } from "firebase/firestore";
 import { Diary } from "@/types/diary";
 
@@ -61,6 +62,7 @@ export const updateDiary = async (
     date,
     tags,
     updatedAt: Date.now(),
+    editHistory: arrayUnion(Date.now()),
   };
   await updateDoc(diaryRef, updateData);
 };
