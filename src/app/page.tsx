@@ -404,8 +404,7 @@ export default function Home() {
             {topTags.length > 0 && !searchQuery && !selectedTag && (
                 <div className="animate-fade-in">
                     <h3 className="text-xs font-bold text-muted mb-4 flex items-center gap-2 uppercase tracking-wider">
-                        <Sparkles className="w-3.5 h-3.5 text-accent" />
-                        あなたの関心事
+                        Interests
                     </h3>
                     <div className="flex flex-wrap gap-x-6 gap-y-4 px-2">
                         {topTags.map((tag, idx) => (
