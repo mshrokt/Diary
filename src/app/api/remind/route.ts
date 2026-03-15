@@ -5,7 +5,6 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function GET(request: Request) {
-  // Check for authorization (Vercel Cron sends a specific header)
   const authHeader = request.headers.get('authorization');
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return new NextResponse('Unauthorized', { status: 401 });
@@ -18,6 +17,7 @@ export async function GET(request: Request) {
     const VAPID_PRIVATE_KEY = (process.env.VAPID_PRIVATE_KEY || "").trim();
     
     if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+      console.error("DEBUG: VAPID keys missing.");
       return NextResponse.json({ success: false, error: "VAPID keys not configured" }, { status: 500 });
     }
     
@@ -27,15 +27,15 @@ export async function GET(request: Request) {
       VAPID_PRIVATE_KEY
     );
 
-    // Fetch subscriptions
+    console.log("DEBUG: Fetching subscriptions...");
     const subsSnapshot = await adminDb.collection("subscriptions").get();
     const subscriptions = subsSnapshot.docs.map(doc => doc.data());
+    console.log(`DEBUG: Found ${subscriptions.length} subscriptions total.`);
 
     if (subscriptions.length === 0) {
       return NextResponse.json({ success: true, results: { sent: 0, skipped: 0, errors: 0 } });
     }
 
-    // Group subscriptions by user
     const userMap = new Map<string, any[]>();
     subscriptions.forEach(sub => {
       const subs = userMap.get(sub.userId) || [];
@@ -43,15 +43,14 @@ export async function GET(request: Request) {
       userMap.set(sub.userId, subs);
     });
 
-    // Current date in JST
     const now = new Date();
     const jstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
     const todayStr = jstNow.toISOString().split("T")[0];
 
     const results = { sent: 0, skipped: 0, errors: 0 };
+    console.log(`DEBUG: Processing ${userMap.size} unique users for date: ${todayStr}`);
 
     for (const [userId, userSubs] of userMap.entries()) {
-      // Check if user already wrote a diary today
       const diariesSnapshot = await adminDb
         .collection("diaries")
         .where("userId", "==", userId)
@@ -66,6 +65,7 @@ export async function GET(request: Request) {
       });
 
       if (!hasEntryToday) {
+        console.log(`DEBUG: User ${userId} has no entry for today. Sending notification...`);
         for (const sub of userSubs) {
           try {
             await webpush.sendNotification(
@@ -77,16 +77,19 @@ export async function GET(request: Request) {
               })
             );
             results.sent++;
+            console.log(`DEBUG: Successfully sent to user ${userId}`);
           } catch (error: any) {
-            console.error(`Failed to send to user ${userId}:`, error.message || error);
+            console.error(`DEBUG ERROR: Failed to send to user ${userId}:`, error.message || error);
             results.errors++;
           }
         }
       } else {
+        console.log(`DEBUG: User ${userId} already has an entry for today. Skipping.`);
         results.skipped += userSubs.length;
       }
     }
 
+    console.log("DEBUG: Final results:", results);
     return NextResponse.json({ success: true, results });
   } catch (error: any) {
     console.error("Reminder cron error:", error.message || error);
