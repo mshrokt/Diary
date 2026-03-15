@@ -39,16 +39,20 @@ export const createDiary = async (
   isDraft: boolean = false,
   images: string[] = []
 ): Promise<string> => {
-  const newDiary = {
+  const newDiary: any = {
     userId,
     content,
     date,
     tags,
     isDraft,
     images,
-    createdAt: Date.now(),
     updatedAt: Date.now(),
   };
+
+  if (!isDraft) {
+    newDiary.createdAt = Date.now();
+  }
+
   const docRef = await addDoc(collection(db, DIARIES_COLLECTION), newDiary);
   return docRef.id;
 };
@@ -59,7 +63,7 @@ export const updateDiary = async (
   date: number,
   tags: string[] = [],
   images?: string[],
-  options: { isDraft?: boolean } = {}
+  options: { isDraft?: boolean; setCreatedAt?: boolean } = {}
 ): Promise<void> => {
   const diaryRef = doc(db, DIARIES_COLLECTION, id);
   const updateData: any = {
@@ -69,6 +73,10 @@ export const updateDiary = async (
     updatedAt: Date.now(),
     isDraft: !!options.isDraft,
   };
+
+  if (options.setCreatedAt) {
+    updateData.createdAt = Date.now();
+  }
 
   if (images) {
     updateData.images = images;

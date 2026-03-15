@@ -20,6 +20,7 @@ export default function EditDiary() {
   const [date, setDate] = useState<number>(Date.now());
   const [tagsInput, setTagsInput] = useState("");
   const [lastYearDiary, setLastYearDiary] = useState<Diary | null>(null);
+  const [originalIsDraft, setOriginalIsDraft] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -51,6 +52,7 @@ export default function EditDiary() {
             setDate(found.date);
             setTagsInput(found.tags?.join(" ") || "");
             setImages(found.images || []);
+            setOriginalIsDraft(!!found.isDraft);
           } else {
             router.push("/");
             return;
@@ -104,7 +106,11 @@ export default function EditDiary() {
       if (isNew) {
         await createDiary(user.uid, content, finalTimestamp, tags, false, images);
       } else {
-        await updateDiary(idStr, content, finalTimestamp, tags, images, { isDraft: false });
+        // If we are publishing a draft, set the createdAt now
+        await updateDiary(idStr, content, finalTimestamp, tags, images, { 
+          isDraft: false, 
+          setCreatedAt: originalIsDraft === true 
+        });
       }
       router.push("/");
       router.refresh();

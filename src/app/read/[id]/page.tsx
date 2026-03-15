@@ -205,12 +205,14 @@ export default function ReadDiary() {
               <div className="mt-8 pt-4 border-t border-border space-y-2">
                 <div className="flex items-center justify-between text-[10px] font-bold text-muted uppercase tracking-widest">
                   <span>{diary.content.length} 文字</span>
-                  <span>
-                    投稿: {(() => {
-                      const d = new Date(diary.createdAt || diary.date);
-                      return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-                    })()}
-                  </span>
+                  {!diary.isDraft && diary.createdAt && (
+                    <span>
+                      投稿: {(() => {
+                        const d = new Date(diary.createdAt);
+                        return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                      })()}
+                    </span>
+                  )}
                 </div>
                 {diary.editHistory && diary.editHistory.length > 0 && (
                   <div className="flex flex-wrap gap-x-3 gap-y-1 opacity-40 text-[9px] font-medium text-muted">

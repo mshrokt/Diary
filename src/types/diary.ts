@@ -5,7 +5,7 @@ export interface Diary {
   date: number; // Stored as timestamp block or standard ISO string for querying. Using number (timestamp)
   tags?: string[]; // Optional array of strings for tagging
   keywords?: string[];
-  createdAt: number;
+  createdAt?: number;
   updatedAt: number;
   editHistory?: number[];
   isDraft?: boolean;
