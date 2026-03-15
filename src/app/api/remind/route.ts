@@ -39,11 +39,20 @@ export async function GET(request: Request) {
     console.log("DEBUG: Fetching subscriptions...");
     let subscriptions: any[] = [];
     try {
-      subscriptions = await getSubscriptions();
+      // 10秒でタイムアウトさせる
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Firestore query timeout")), 10000)
+      );
+      
+      subscriptions = await Promise.race([
+        getSubscriptions(),
+        timeoutPromise
+      ]) as any[];
+      
       console.log(`DEBUG: Found ${subscriptions.length} subscriptions`);
-    } catch (dbErr) {
-      console.error("DEBUG ERROR: Failed to get subscriptions from Firestore:", dbErr);
-      throw dbErr;
+    } catch (dbErr: any) {
+      console.error("DEBUG ERROR: Failed to get subscriptions from Firestore:", dbErr.message || dbErr);
+      return NextResponse.json({ success: false, error: dbErr.message || "DB Error" }, { status: 500 });
     }
     const results = { sent: 0, skipped: 0, errors: 0 };
 
