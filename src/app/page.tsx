@@ -38,7 +38,7 @@ export default function Home() {
       const q = query(
         collection(db, "diaries"),
         where("userId", "==", user.uid),
-        orderBy("date", "desc")
+        orderBy("createdAt", "desc")
       );
 
       const unsubscribe = onSnapshot(q, (snapshot) => {

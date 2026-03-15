@@ -22,7 +22,7 @@ export const getDiaries = async (userId: string): Promise<Diary[]> => {
   const q = query(
     collection(db, DIARIES_COLLECTION),
     where("userId", "==", userId),
-    orderBy("date", "desc")
+    orderBy("createdAt", "desc")
   );
 
   const querySnapshot = await getDocs(q);
