@@ -88,14 +88,17 @@ export default function EditDiary() {
     const tags = Array.from(new Set(tagsInput.split(/\s+/).filter(t => t.trim() !== "")));
 
     try {
+      // Create a date object from the currently selected day
+      const finalDate = new Date(date);
+      const now = new Date();
+      // Update the time to the exact moment of clicking "Save"
+      finalDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      const finalTimestamp = finalDate.getTime();
+
       if (isNew) {
-        // Use current time for "Post Time" but keep the selected day
-        const finalDate = new Date(date);
-        const now = new Date();
-        finalDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
-        await createDiary(user.uid, content, finalDate.getTime(), tags);
+        await createDiary(user.uid, content, finalTimestamp, tags);
       } else {
-        await updateDiary(idStr, content, date, tags);
+        await updateDiary(idStr, content, finalTimestamp, tags);
       }
       router.push("/");
       router.refresh();
@@ -121,7 +124,13 @@ export default function EditDiary() {
     }
   };
 
-  const dateStr = new Date(date).toISOString().split("T")[0];
+  const dateStr = (() => {
+    const d = new Date(date);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  })();
 
   if (loading || authLoading) {
     return (
