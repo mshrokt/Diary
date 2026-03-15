@@ -89,7 +89,11 @@ export default function EditDiary() {
 
     try {
       if (isNew) {
-        await createDiary(user.uid, content, date, tags);
+        // Use current time for "Post Time" but keep the selected day
+        const finalDate = new Date(date);
+        const now = new Date();
+        finalDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds());
+        await createDiary(user.uid, content, finalDate.getTime(), tags);
       } else {
         await updateDiary(idStr, content, date, tags);
       }

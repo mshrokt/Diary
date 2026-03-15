@@ -178,22 +178,15 @@ export default function ReadDiary() {
                   </span>
                 </div>
                 {diary.editHistory && diary.editHistory.length > 0 && (
-                  <div className="bg-surface/50 rounded-xl p-3 border border-border/50">
-                    <div className="flex items-center gap-1.5 text-[9px] font-bold text-muted uppercase tracking-tighter mb-2">
-                      <History className="w-3 h-3 text-accent" />
-                      編集履歴
-                    </div>
-                    <div className="space-y-1">
-                      {diary.editHistory.map((ts, idx) => {
-                        const d = new Date(ts);
-                        return (
-                          <div key={idx} className="text-[10px] text-muted/70 flex justify-between">
-                            <span>編集 {idx + 1}</span>
-                            <span>{d.getFullYear()}/{d.getMonth() + 1}/{d.getDate()} {String(d.getHours()).padStart(2, '0')}:{String(d.getMinutes()).padStart(2, '0')}</span>
-                          </div>
-                        );
-                      })}
-                    </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-1 opacity-40 text-[9px] font-medium text-muted">
+                    {diary.editHistory.map((ts, idx) => {
+                      const d = new Date(ts);
+                      return (
+                        <span key={idx}>
+                          編集 {idx + 1}: {d.getMonth() + 1}/{d.getDate()} {String(d.getHours()).padStart(2, '0')}:{String(d.getMinutes()).padStart(2, '0')}
+                        </span>
+                      );
+                    })}
                   </div>
                 )}
               </div>
