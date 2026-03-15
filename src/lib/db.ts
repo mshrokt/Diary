@@ -37,7 +37,8 @@ export const createDiary = async (
   content: string,
   date: number,
   tags: string[] = [],
-  isDraft: boolean = false
+  isDraft: boolean = false,
+  images: string[] = []
 ): Promise<string> => {
   const newDiary = {
     userId,
@@ -45,6 +46,7 @@ export const createDiary = async (
     date,
     tags,
     isDraft,
+    images,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   };
@@ -57,6 +59,7 @@ export const updateDiary = async (
   content: string,
   date: number,
   tags: string[] = [],
+  images?: string[],
   options: { isDraft?: boolean } = {}
 ): Promise<void> => {
   const diaryRef = doc(db, DIARIES_COLLECTION, id);
@@ -67,6 +70,10 @@ export const updateDiary = async (
     updatedAt: Date.now(),
     isDraft: !!options.isDraft,
   };
+
+  if (images) {
+    updateData.images = images;
+  }
 
   if (!options.isDraft) {
     updateData.editHistory = arrayUnion(Date.now());

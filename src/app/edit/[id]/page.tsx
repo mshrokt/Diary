@@ -5,9 +5,10 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import { createDiary, getDiaries, updateDiary, deleteDiary } from "@/lib/db";
 import { Diary } from "@/types/diary";
-import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight } from "lucide-react";
+import { ArrowLeft, Save, Trash2, Calendar as CalendarIcon, Loader2, Tag, History, ChevronRight, Image as ImageIcon, X as XIcon } from "lucide-react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
+import { CldUploadWidget } from 'next-cloudinary';
 
 export default function EditDiary() {
   const { user, loading: authLoading } = useAuth();
@@ -27,6 +28,7 @@ export default function EditDiary() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [draftSaving, setDraftSaving] = useState(false);
   const [showDraftFeedback, setShowDraftFeedback] = useState(false);
+  const [images, setImages] = useState<string[]>([]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -47,6 +49,7 @@ export default function EditDiary() {
             setContent(found.content);
             setDate(found.date);
             setTagsInput(found.tags?.join(" ") || "");
+            setImages(found.images || []);
           } else {
             router.push("/");
             return;
@@ -98,9 +101,9 @@ export default function EditDiary() {
       const finalTimestamp = finalDate.getTime();
 
       if (isNew) {
-        await createDiary(user.uid, content, finalTimestamp, tags, false);
+        await createDiary(user.uid, content, finalTimestamp, tags, false, images);
       } else {
-        await updateDiary(idStr, content, finalTimestamp, tags, { isDraft: false });
+        await updateDiary(idStr, content, finalTimestamp, tags, images, { isDraft: false });
       }
       router.push("/");
       router.refresh();
@@ -120,12 +123,12 @@ export default function EditDiary() {
     try {
       if (isNew) {
         // Use original date (from picker), don't update to current time
-        const newId = await createDiary(user.uid, content, date, tags, true);
+        const newId = await createDiary(user.uid, content, date, tags, true, images);
         // Replace current URL with the new ID so it's no longer "new"
         router.replace(`/edit/${newId}`);
       } else {
         // Update with isDraft: true to skip editHistory updates
-        await updateDiary(idStr, content, date, tags, { isDraft: true });
+        await updateDiary(idStr, content, date, tags, images, { isDraft: true });
       }
       setShowDraftFeedback(true);
       setTimeout(() => setShowDraftFeedback(false), 2000);
@@ -253,8 +256,24 @@ export default function EditDiary() {
             )}
           </div>
 
-          {/* Text area */}
           <div className="flex-1 flex flex-col min-h-0 p-6">
+            {/* Image Preview / Upload */}
+            {images.length > 0 && (
+                <div className="flex flex-wrap gap-3 mb-6">
+                    {images.map((url, idx) => (
+                        <div key={idx} className="relative group/img w-20 h-20 rounded-xl overflow-hidden border border-border bg-surface shrink-0">
+                            <img src={url} alt="Preview" className="w-full h-full object-cover" />
+                            <button 
+                                onClick={() => setImages(images.filter((_, i) => i !== idx))}
+                                className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1 opacity-0 group-hover/img:opacity-100 transition-opacity"
+                            >
+                                <XIcon className="w-3 h-3" />
+                            </button>
+                        </div>
+                    ))}
+                </div>
+            )}
+
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -282,6 +301,26 @@ export default function EditDiary() {
                   placeholder="タグを追加 (スペース区切り)"
                   className="w-full bg-transparent outline-none text-sm text-foreground placeholder-muted/40"
                 />
+
+                <CldUploadWidget 
+                    uploadPreset="diary-app-unsigned" 
+                    onSuccess={(result: any) => {
+                        if (result.info && typeof result.info !== 'string') {
+                            setImages(prev => [...prev, result.info.secure_url]);
+                        }
+                    }}
+                >
+                    {({ open }) => (
+                        <button
+                            type="button"
+                            onClick={() => open()}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-primary/10 text-primary hover:bg-primary hover:text-white transition-all text-xs font-bold"
+                        >
+                            <ImageIcon className="w-3.5 h-3.5" />
+                            画像
+                        </button>
+                    )}
+                </CldUploadWidget>
                 
                 {/* Suggestions Dropdown */}
                 {showSuggestions && (

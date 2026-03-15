@@ -511,14 +511,23 @@ export default function Home() {
 
                                 {/* Content preview */}
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm text-foreground line-clamp-2 leading-relaxed mb-2">
-                                        {diary.isDraft && (
-                                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 mr-2 border border-amber-200/50 dark:border-amber-700/30">
-                                                下書き
-                                            </span>
+                                    <div className="flex gap-4">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm text-foreground line-clamp-2 leading-relaxed mb-2">
+                                                {diary.isDraft && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 mr-2 border border-amber-200/50 dark:border-amber-700/30">
+                                                        下書き
+                                                    </span>
+                                                )}
+                                                {diary.content}
+                                            </p>
+                                        </div>
+                                        {diary.images && diary.images.length > 0 && (
+                                            <div className="w-16 h-16 rounded-xl overflow-hidden border border-border bg-surface shrink-0 hidden sm:block">
+                                                <img src={diary.images[0]} alt="Thumbnail" className="w-full h-full object-cover" />
+                                            </div>
                                         )}
-                                        {diary.content}
-                                    </p>
+                                    </div>
                                     
                                     {/* Tags in card */}
                                     {diary.tags && diary.tags.length > 0 && (

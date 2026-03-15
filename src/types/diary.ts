@@ -9,4 +9,5 @@ export interface Diary {
   updatedAt: number;
   editHistory?: number[];
   isDraft?: boolean;
+  images?: string[];
 }

@@ -153,6 +153,21 @@ export default function ReadDiary() {
                 </div>
               )}
 
+              {/* Images in reader */}
+              {diary.images && diary.images.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                  {diary.images.map((url, idx) => (
+                    <div key={idx} className="relative aspect-[4/3] rounded-2xl overflow-hidden border border-border shadow-sm group/img">
+                      <img 
+                        src={url} 
+                        alt={`Entry photo ${idx + 1}`} 
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover/img:scale-105" 
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
               <div className="prose-like mt-4">
                 {diary.content.split("\n").map((line, i) => (
                   <p
