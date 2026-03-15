@@ -11,6 +11,8 @@ import { PenSquare, Calendar as CalendarIcon, ChevronRight, BookOpen, Sparkles, 
 import Link from "next/link";
 
 import { getDailyHint } from "@/data/dailyHints";
+import { onSnapshot, query, collection, where, orderBy } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function Home() {
   const { user, loading: authLoading, loginWithGoogle } = useAuth();
@@ -33,17 +35,25 @@ export default function Home() {
 
   useEffect(() => {
     if (user) {
-      const fetchDiaries = async () => {
-        try {
-          const data = await getDiaries(user.uid);
-          setDiaries(data);
-        } catch (error) {
-          console.error("Failed to load diaries", error);
-        } finally {
-          setLoading(false);
-        }
-      };
-      fetchDiaries();
+      const q = query(
+        collection(db, "diaries"),
+        where("userId", "==", user.uid),
+        orderBy("date", "desc")
+      );
+
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const data = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Diary[];
+        setDiaries(data);
+        setLoading(false);
+      }, (error) => {
+        console.error("Failed to load diaries", error);
+        setLoading(false);
+      });
+
+      return () => unsubscribe();
     } else {
       setLoading(false);
     }
