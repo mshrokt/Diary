@@ -91,12 +91,12 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
       </div>
 
       {/* Weekday headers */}
-      <div className="grid grid-cols-7 mb-2">
+      <div className="grid grid-cols-7 gap-1 mb-2">
         {weekdays.map((w, i) => (
           <div
             key={w}
-            className={`text-center text-[11px] font-semibold py-1 ${
-              i === 0 ? "text-red-400" : i === 6 ? "text-blue-400" : "text-muted"
+            className={`text-center text-[10px] font-bold uppercase tracking-wider ${
+              i === 0 ? "text-red-400/50" : i === 6 ? "text-blue-400/50" : "text-muted/40"
             }`}
           >
             {w}
@@ -105,7 +105,7 @@ export default function Calendar({ diaryData, onDateClick }: CalendarProps) {
       </div>
 
       {/* Day cells */}
-      <div className="grid grid-cols-7 gap-y-1">
+      <div className="grid grid-cols-7 gap-1">
         {cells.map((day, idx) => {
           if (day === null) {
             return <div key={`empty-${idx}`} />;
