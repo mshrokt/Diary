@@ -40,6 +40,8 @@ self.addEventListener("push", (event) => {
     }
   }
 
+  console.log("DEBUG: Push event received!", data);
+
   const title = data.title || "My Diary";
   const options = {
     body: data.body || "今日のできごとを記録しませんか？",
@@ -48,12 +50,16 @@ self.addEventListener("push", (event) => {
     data: {
       url: data.url || "/",
     },
-    // Adding some extra stability for iOS
     tag: "diary-reminder",
-    renotify: true
+    renotify: true,
+    silent: false
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+      .then(() => console.log("DEBUG: Notification shown successfully"))
+      .catch((err) => console.error("DEBUG ERROR: Failed to show notification", err))
+  );
 });
 
 self.addEventListener("notificationclick", (event) => {
