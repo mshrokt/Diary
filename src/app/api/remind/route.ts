@@ -75,7 +75,11 @@ export async function GET(request: Request) {
                 title: "My Diary",
                 body: "今日のできごとを記録しませんか？",
                 url: "/edit/new"
-              })
+              }),
+              {
+                TTL: 60,
+                urgency: "high",
+              }
             );
             results.sent++;
             console.log(`DEBUG: Successfully sent to user ${userId}`);

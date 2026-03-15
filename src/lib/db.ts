@@ -103,14 +103,22 @@ export const getSubscriptions = async () => {
   return querySnapshot.docs.map(doc => doc.data());
 };
 
-export const deleteSubscription = async (userId: string, endpoint: string) => {
-  const q = query(
-    collection(db, "subscriptions"),
-    where("userId", "==", userId),
-    where("endpoint", "==", endpoint)
-  );
+export const deleteSubscription = async (userId: string, endpoint: string = "") => {
+  let q;
+  if (endpoint) {
+    q = query(
+      collection(db, "subscriptions"),
+      where("userId", "==", userId),
+      where("endpoint", "==", endpoint)
+    );
+  } else {
+    // Delete all subscriptions for the user
+    q = query(
+      collection(db, "subscriptions"),
+      where("userId", "==", userId)
+    );
+  }
   const snapshot = await getDocs(q);
-  snapshot.forEach(async (document) => {
-    await deleteDoc(doc(db, "subscriptions", document.id));
-  });
+  const deletePromises = snapshot.docs.map(document => deleteDoc(doc(db, "subscriptions", document.id)));
+  await Promise.all(deletePromises);
 };

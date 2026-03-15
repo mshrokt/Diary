@@ -85,6 +85,9 @@ export default function Navbar() {
           return;
         }
 
+        // Clear existing subscriptions for this user to avoid stale data
+        await deleteSubscription(user.uid);
+        
         const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
