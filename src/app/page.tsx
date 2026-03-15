@@ -416,7 +416,7 @@ export default function Home() {
             {topTags.length > 0 && (
                 <div className="flex flex-col gap-2 animate-fade-in">
                     <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Interests RANKING</span>
+                        <span className="text-[10px] font-bold text-muted uppercase tracking-wider">Current Interests</span>
                         {(searchQuery || selectedTag || selectedKeyword) && (
                             <button 
                                 onClick={() => {setSearchQuery(""); setSelectedTag(null); setSelectedKeyword(null);}}
