@@ -356,14 +356,14 @@ export default function EditDiary() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={isUploading}
-                    className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 text-primary hover:from-primary hover:to-primary-light hover:text-white transition-all text-sm font-bold shadow-sm border border-primary/10 hover:border-transparent active:scale-95 disabled:opacity-50 group"
+                    className="flex flex-row items-center gap-2 px-4 py-2.5 rounded-2xl bg-surface border border-border text-foreground hover:bg-primary/5 hover:border-primary/30 hover:text-primary transition-all text-sm font-bold shadow-sm active:scale-95 disabled:opacity-50 group shrink-0"
                 >
                     {isUploading ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                        <ImageIcon className="w-5 h-5 transition-transform group-hover:scale-110" />
+                        <ImageIcon className="w-4 h-4 text-primary transition-transform group-hover:scale-110" />
                     )}
-                    画像
+                    <span>画像</span>
                 </button>
                 
                 {/* Suggestions Dropdown */}
